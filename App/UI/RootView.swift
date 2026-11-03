@@ -61,38 +61,17 @@ struct RootView: View {
                         .navigationTitle("校园生活")
                         .navigationSplitViewColumnWidth(min: 220, ideal: 250, max: 300)
                     } detail: {
-                        NavigationStack { page(store.selectedTab).toolbar { actions } }
+                        NavigationStack { navigationPage(store.selectedTab) }
                     }
                     .navigationSplitViewStyle(.balanced)
                 } else {
                     TabView(selection: $store.selectedTab) {
                         ForEach(PocketTab.allCases) { tab in
-                            NavigationStack { page(tab).toolbar { actions } }
+                            NavigationStack { navigationPage(tab) }
                                 .tabItem { Label(tab.title, systemImage: tab.icon) }
                                 .tag(tab)
                         }
                     }
-                }
-            }
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if store.isDemo {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 12) {
-                            Label("演示模式 · 数据为虚构示例", systemImage: "sparkles")
-                                .accessibilityIdentifier("demo-banner")
-                                .fixedSize(horizontal: true, vertical: false)
-                            Spacer(minLength: 0)
-                            demoLoginButton
-                        }
-                        VStack(alignment: .leading, spacing: 6) {
-                            Label("演示模式 · 数据为虚构示例", systemImage: "sparkles")
-                                .accessibilityIdentifier("demo-banner")
-                                .fixedSize(horizontal: false, vertical: true)
-                            demoLoginButton
-                        }
-                    }
-                    .font(.caption).padding(.horizontal, 18).padding(.vertical, 10)
-                    .background(PocketTheme.jade.opacity(0.12))
                 }
             }
         }
@@ -123,6 +102,35 @@ struct RootView: View {
         } message: { Text(store.message ?? "") }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await store.refreshIfNeeded() } }
+        }
+    }
+
+    private func navigationPage(_ tab: PocketTab) -> some View {
+        page(tab)
+            .safeAreaInset(edge: .top, spacing: 0) { demoBanner }
+            .toolbar { actions }
+    }
+
+    @ViewBuilder private var demoBanner: some View {
+        if store.isDemo {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    Label("演示模式 · 数据为虚构示例", systemImage: "sparkles")
+                        .accessibilityIdentifier("demo-banner")
+                        .fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: 0)
+                    demoLoginButton
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("演示模式 · 数据为虚构示例", systemImage: "sparkles")
+                        .accessibilityIdentifier("demo-banner")
+                        .fixedSize(horizontal: false, vertical: true)
+                    demoLoginButton
+                }
+            }
+            .font(.caption).padding(.horizontal, 18).padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(PocketTheme.jade.opacity(0.12))
         }
     }
 

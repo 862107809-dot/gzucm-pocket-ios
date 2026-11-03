@@ -2,7 +2,17 @@ name: iOS simulator verification
 
 on:
   push:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'design-system/**'
+      - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'design-system/**'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
@@ -25,8 +35,8 @@ jobs:
             xcode: '26.3'
             os_major: 18
             device_kind: iphone
-          - runner: macos-26
-            xcode: '26.6'
+          - runner: macos-15
+            xcode: '26.3'
             os_major: 26
             device_kind: iphone
           - runner: xcode-27

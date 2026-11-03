@@ -134,28 +134,52 @@ struct TodayView: View {
 
 struct CourseRow: View {
     let course: CourseSession
+    @Environment(\.dynamicTypeSize) private var dynamicType
+
     var body: some View {
         PocketCard {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(course.resolvedStartTime).font(.system(.headline, design: .rounded)).monospacedDigit()
-                    Text(course.resolvedEndTime).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            if dynamicType.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(course.resolvedStartTime)–\(course.resolvedEndTime)")
+                            .font(.system(.headline, design: .rounded)).monospacedDigit()
+                            .fixedSize(horizontal: false, vertical: true)
+                            .layoutPriority(1)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
+                    }
+                    HStack(alignment: .top, spacing: 12) {
+                        RoundedRectangle(cornerRadius: 2).fill(PocketTheme.courseColor(course.code + course.name)).frame(width: 3)
+                        courseDetails
+                    }
                 }
-                .frame(width: 54, alignment: .leading)
-                RoundedRectangle(cornerRadius: 2).fill(PocketTheme.courseColor(course.code + course.name)).frame(width: 3)
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(course.name).font(.headline).foregroundStyle(.primary)
-                    if !course.content.isEmpty { Text(course.content).font(.subheadline).foregroundStyle(.secondary) }
-                    Text([course.room, course.teachers].filter { !$0.isEmpty }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(.secondary)
-                    Text("第 \(course.startUnit)–\(course.endUnit) 节").font(.caption2).foregroundStyle(PocketTheme.jade)
+                .fixedSize(horizontal: false, vertical: true)
+            } else {
+                HStack(alignment: .top, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(course.resolvedStartTime).font(.system(.headline, design: .rounded)).monospacedDigit()
+                        Text(course.resolvedEndTime).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                    .frame(width: 54, alignment: .leading)
+                    RoundedRectangle(cornerRadius: 2).fill(PocketTheme.courseColor(course.code + course.name)).frame(width: 3)
+                    courseDetails
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
                 }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
             }
-            .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var courseDetails: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(course.name).font(.headline).foregroundStyle(.primary)
+            if !course.content.isEmpty { Text(course.content).font(.subheadline).foregroundStyle(.secondary) }
+            Text([course.room, course.teachers].filter { !$0.isEmpty }.joined(separator: " · "))
+                .font(.caption).foregroundStyle(.secondary)
+            Text("第 \(course.startUnit)–\(course.endUnit) 节").font(.caption2).foregroundStyle(PocketTheme.jade)
+        }
     }
 }
 

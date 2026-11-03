@@ -19,10 +19,12 @@ Apple 的 [Xcode 27 说明](https://developer.apple.com/documentation/xcode-rele
 | 任务 | Runner | Xcode | 必须实际存在的模拟器 |
 | --- | --- | --- | --- |
 | 旧系统回退 | `macos-15` | `26.3` | iOS **18** 普通 iPhone |
-| Liquid Glass 系统 | `macos-26` | `26.6` | iOS **26** 普通 iPhone |
+| Liquid Glass 系统 | `macos-15` | `26.3` | iOS **26** 普通 iPhone |
 | Duo 布局 | `xcode-27` | `27.1` | iOS **27** 的 **iPhone Duo** |
 
 配置位于 `.github/workflows/ios.yml`，上传至仓库后 push / pull_request 自动运行，也支持 Actions 页手动运行。
+
+首次实际运行中 `macos-26` 队列长时间未获分配，因此 iOS26 任务改用已成功分配且实际清单包含 iOS26.2 的 `macos-15` / Xcode26.3。macOS 主机版本与被测 iOS 版本分别记录，不将它们混为一谈。
 
 上述版本来自核对时的 GitHub 官方 [macos-15 软件清单](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-arm64-Readme.md)、[macos-26 软件清单](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md)和 [xcode-27 软件清单](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md)。GitHub 的 [2026-10-15 公告](https://github.blog/changelog/2026-10-15-xcode-27-runner-image-generally-available/)说明 Xcode 27 runner 已正式可用。镜像会更新，实际运行仍逐次采集工具链和模拟器清单；缺失指定系统或设备会明确失败，不能换成另一台设备后当作同一覆盖范围。
 
@@ -32,7 +34,7 @@ GitHub 托管运行器是云端 Mac 虚拟机，Windows 上无需安装虚拟 ma
 
 1. 记录所选 Xcode、Simulator SDK 与完整 `simctl` JSON 清单。
 2. 验证工程、资源、Info/Privacy plist、Scheme 与 UI 测试 target 引用。
-3. 执行 Python 模拟器选择器测试、27 项 PocketCore XCTest，以及 16 项实际电费脚本测试。
+3. 执行 Python 模拟器选择器测试（现为26项）、27 项 PocketCore XCTest，以及 16 项实际电费脚本测试。
 4. 从实际清单中选出同一主版本和设备种类的模拟器，启动并等待启动完成。
 5. 通过 `xcodebuild test` 编译 App 与 UI 测试 runner。四页分别用虚构演示数据启动，验证横幅与主要页面元素出现；其中包含深色模式与辅助大字体场景。测试不读取学校账户、不自动登录学校系统。
 6. 保留编译日志、`.xcresult` 和截图附件。失败也上传已生成的证据；`status.json` 区分未开始、未运行、失败与通过。
