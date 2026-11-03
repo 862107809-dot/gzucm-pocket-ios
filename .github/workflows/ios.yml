@@ -1,0 +1,74 @@
+name: iOS simulator verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-verification-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: iOS ${{ matrix.os_major }} / ${{ matrix.device_kind }} / Xcode ${{ matrix.xcode }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            xcode: '26.3'
+            os_major: 18
+            device_kind: iphone
+          - runner: macos-26
+            xcode: '26.6'
+            os_major: 26
+            device_kind: iphone
+          - runner: xcode-27
+            xcode: '27.1'
+            os_major: 27
+            device_kind: duo
+    env:
+      VERIFY_ARTIFACT_DIR: .build/verification-${{ matrix.os_major }}-${{ matrix.device_kind }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record requested verification environment
+        shell: bash
+        run: |
+          mkdir -p "$VERIFY_ARTIFACT_DIR"
+          cat > "$VERIFY_ARTIFACT_DIR/status.json" <<'JSON'
+          {
+            "status": "not_started",
+            "exit_status": null,
+            "requested_os_major": ${{ matrix.os_major }},
+            "device_kind": "${{ matrix.device_kind }}",
+            "requested_runner": "${{ matrix.runner }}",
+            "requested_xcode": "${{ matrix.xcode }}",
+            "note": "Verification script has not started; inspect workflow setup steps if this status remains."
+          }
+          JSON
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ matrix.xcode }}
+      - name: Compile and run core, bridge, tool and simulator UI tests
+        shell: bash
+        run: bash tools/verify-mac.sh --os-major '${{ matrix.os_major }}' --device-kind '${{ matrix.device_kind }}'
+      - name: Upload simulator evidence and honest status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-ios${{ matrix.os_major }}-${{ matrix.device_kind }}-xcode${{ matrix.xcode }}
+          path: ${{ env.VERIFY_ARTIFACT_DIR }}/
+          if-no-files-found: warn
+          retention-days: 14
