@@ -136,6 +136,7 @@ struct RootView: View {
 
     private var demoLoginButton: some View {
         Button("登录") { showLogin = true }
+            .accessibilityIdentifier("demo-login-button")
             .fontWeight(.semibold)
             .frame(minWidth: 44, minHeight: 44)
     }

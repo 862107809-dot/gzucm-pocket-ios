@@ -4,51 +4,78 @@ import XCTest
 /// Screenshots are evidence for review, not assertions about glass rendering or fold poses.
 @MainActor
 final class GZUCMPocketUITests: XCTestCase {
-    func testTodayDemo() {
-        checkDemo(tab: "today", marker: "today-header")
+    func testTodayDemo() async {
+        await checkDemo(tab: "today", marker: "today-header")
     }
 
-    func testScheduleWithAccessibilityText() {
-        checkDemo(tab: "schedule", marker: "schedule-week-control", arguments: ["--large-text"])
+    func testScheduleWithAccessibilityText() async {
+        await checkDemo(tab: "schedule", marker: "schedule-week-control", arguments: ["--large-text"])
     }
 
-    func testGradesInDarkMode() {
-        checkDemo(tab: "grades", marker: "grades-summary", arguments: ["--dark"])
+    func testGradesInDarkMode() async {
+        await checkDemo(tab: "grades", marker: "grades-summary", arguments: ["--dark"])
     }
 
-    func testPowerInDarkMode() {
-        checkDemo(tab: "power", marker: "power-balance", arguments: ["--dark"])
+    func testPowerInDarkMode() async {
+        await checkDemo(tab: "power", marker: "power-balance", arguments: ["--dark"])
     }
 
-    private func checkDemo(tab: String, marker: String, arguments: [String] = [], file: StaticString = #filePath, line: UInt = #line) {
+    private func checkDemo(tab: String, marker: String, arguments: [String] = [], file: StaticString = #filePath, line: UInt = #line) async {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--demo", "--tab", tab, "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"] + arguments
         app.launch()
         defer { app.terminate() }
-        let banner = app.descendants(matching: .any).matching(identifier: "demo-banner").firstMatch
-        let bannerAppeared = banner.waitForExistence(timeout: 15)
+        let banners = app.descendants(matching: .any).matching(identifier: "demo-banner")
+        let bannerAppeared = banners.firstMatch.waitForExistence(timeout: 15)
+        let loginButtons = app.buttons.matching(identifier: "demo-login-button")
         let content = app.descendants(matching: .any).matching(identifier: marker).firstMatch
         let contentAppeared = content.waitForExistence(timeout: 15)
-        // Existence alone also passes for clipped or obscured accessibility
-        // elements. Wait for the banner and the visible page marker to settle.
-        let bannerHittable = waitForHittable(banner)
-        let contentHittable = waitForHittable(content)
+        // ViewThatFits and TabView can expose several passive label candidates.
+        // The disclaimer must occupy screen space; the actual login action must
+        // have exactly one hittable instance. Do not require a composite Label
+        // itself to expose a tap point or blindly select its first candidate.
+        let bannerVisible = await waitUntil { hasVisibleDisclaimer(banners, screen: app.frame) }
+        let loginHittable = await waitUntil { hittableCount(loginButtons) == 1 }
+        let contentHittable = await waitUntil { content.exists && content.isHittable }
+        let evidenceName = ([tab] + arguments.map { $0.replacingOccurrences(of: "--", with: "") }).joined(separator: "-")
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = ([tab] + arguments.map { $0.replacingOccurrences(of: "--", with: "") }).joined(separator: "-")
+        attachment.name = evidenceName
         attachment.lifetime = .keepAlways
         add(attachment)
+        let hierarchy = XCTAttachment(string: app.debugDescription)
+        hierarchy.name = evidenceName + "-accessibility-hierarchy"
+        hierarchy.lifetime = .keepAlways
+        add(hierarchy)
         XCTAssertTrue(bannerAppeared, "Fictional demo banner did not appear", file: file, line: line)
         XCTAssertTrue(contentAppeared, "Demo content missing for \(tab): \(marker)", file: file, line: line)
-        XCTAssertTrue(bannerHittable && banner.isHittable, "Fictional demo banner is clipped or obscured on \(tab)", file: file, line: line)
+        XCTAssertTrue(bannerVisible && hasVisibleDisclaimer(banners, screen: app.frame), "Fictional demo disclaimer has no positive frame intersecting the screen on \(tab)", file: file, line: line)
+        XCTAssertTrue(loginHittable && hittableCount(loginButtons) == 1, "Expected exactly one visible, unobscured demo login button on \(tab)", file: file, line: line)
         XCTAssertTrue(contentHittable && content.isHittable, "Demo content is clipped or obscured for \(tab): \(marker)", file: file, line: line)
     }
 
-    private func waitForHittable(_ element: XCUIElement) -> Bool {
-        let predicate = NSPredicate(format: "exists == true AND hittable == true")
-        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
-        // XCTWaiter reports a timeout without failing early, so a screenshot
-        // is retained above even when a visibility assertion will fail.
-        return XCTWaiter.wait(for: [expectation], timeout: 8) == .completed
+    private func hasVisibleDisclaimer(_ query: XCUIElementQuery, screen: CGRect) -> Bool {
+        query.allElementsBoundByIndex.contains { element in
+            guard element.exists else { return false }
+            let frame = element.frame
+            guard !frame.isNull, !frame.isInfinite, frame.width > 0, frame.height > 0 else { return false }
+            let intersection = frame.intersection(screen)
+            return !intersection.isNull && intersection.width > 0 && intersection.height > 0
+        }
     }
+
+    private func hittableCount(_ query: XCUIElementQuery) -> Int {
+        query.allElementsBoundByIndex.filter { $0.exists && $0.isHittable }.count
+    }
+
+    private func waitUntil(_ condition: () -> Bool) async -> Bool {
+        let deadline = ProcessInfo.processInfo.systemUptime + 8
+        while !condition() {
+            guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            do { try await Task.sleep(nanoseconds: 100_000_000) }
+            catch { return false }
+        }
+        return true
+    }
+
 }
