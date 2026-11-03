@@ -85,7 +85,7 @@ def main():
         for config in ("Debug", "Release"):
             settings = {"SDKROOT": "iphoneos", "IPHONEOS_DEPLOYMENT_TARGET": "18.0", "SWIFT_VERSION": "5.0", "CLANG_ENABLE_MODULES": "YES", "GCC_C_LANGUAGE_STANDARD": "gnu17"}
             if owner == "project":
-                settings.update({"DEBUG_INFORMATION_FORMAT": "dwarf" if config == "Debug" else "dwarf-with-dsym", "SWIFT_OPTIMIZATION_LEVEL": "-Onone" if config == "Debug" else "-O", "ENABLE_TESTABILITY": "YES" if config == "Debug" else "NO"})
+                settings.update({"DEBUG_INFORMATION_FORMAT": "dwarf" if config == "Debug" else "dwarf-with-dsym", "SWIFT_OPTIMIZATION_LEVEL": "-Onone" if config == "Debug" else "-O", "ENABLE_TESTABILITY": "YES" if config == "Debug" else "NO", "ONLY_ACTIVE_ARCH": "YES" if config == "Debug" else "NO"})
                 if config == "Debug":
                     settings["SWIFT_ACTIVE_COMPILATION_CONDITIONS"] = "DEBUG $(inherited)"
             elif owner == "target":

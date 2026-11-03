@@ -158,6 +158,26 @@ class SelectionTests(unittest.TestCase):
         del value["runtimes"][0]["version"]
         self.assertEqual(SELECTOR.select_simulator(value, 18)["os_version"], "18.6")
 
+    def test_real_apple_identifier_can_omit_patch_without_blocking_ios_18(self):
+        value = inventory()
+        value["runtimes"][1]["version"] = "26.0.1"
+        self.assertEqual(SELECTOR.select_simulator(value, 18)["os_version"], "18.6")
+        selected = SELECTOR.select_simulator(value, 26)
+        self.assertEqual(selected["runtime"], RUNTIME_PREFIX + "26-0")
+        self.assertEqual(selected["os_version"], "26.0.1")
+
+    def test_identifier_prefix_still_rejects_conflicting_major_minor_or_patch(self):
+        for identifier, version in [
+            ("26-0", "27.0.1"), ("26-0", "26.1.0"),
+            ("26-0-1", "26.0.2"), ("26-0-1", "26.0")
+        ]:
+            with self.subTest(identifier=identifier, version=version):
+                value = inventory()
+                value["runtimes"][1]["identifier"] = RUNTIME_PREFIX + identifier
+                value["runtimes"][1]["version"] = version
+                with self.assertRaisesRegex(SELECTOR.SelectionError, "disagrees with its version"):
+                    SELECTOR.select_simulator(value, 18)
+
     def test_no_available_runtime_has_clear_install_instruction(self):
         value = inventory()
         for row in value["runtimes"]:

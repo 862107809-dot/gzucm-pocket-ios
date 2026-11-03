@@ -147,8 +147,12 @@ def select_simulator(inventory: Any, os_major: Optional[int] = None, device_kind
         raw_version = runtime.get("version", match.group(1).replace("-", "."))
         version = _text(raw_version, label + ".version")
         parts = _version(version, label + ".version")
-        id_parts = _version(match.group(1).replace("-", "."), label + ".identifier version")
-        if parts != id_parts:
+        # Apple's identifier may omit a patch: iOS-26-0 can report 26.0.1.
+        # Compare the untrimmed identifier components as a prefix, preserving
+        # the minor zero so iOS-26-0 cannot accidentally accept version 26.1.
+        id_parts = tuple(int(part) for part in match.group(1).split("-"))
+        reported_parts = tuple(int(part) for part in version.split("."))
+        if len(id_parts) < 2 or reported_parts[:len(id_parts)] != id_parts:
             raise SelectionError("Runtime {!r} disagrees with its version {!r}.".format(identifier, version))
         if is_available:
             available_runtimes.append({"identifier": identifier, "version": version, "parts": parts})
