@@ -1,0 +1,41 @@
+name: iPhone device IPA for local signing
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ipa.yml'
+      - 'tools/package-ios.sh'
+      - 'tools/inspect_ipa.py'
+      - 'tools/tests/test_inspect_ipa.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: device-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: xcode-27
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '27.1'
+      - name: Build Release for real iPhone hardware and prepare unsigned IPA
+        shell: bash
+        run: bash tools/package-ios.sh
+      - name: Upload package, validation and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone-ipa-requires-local-signing
+          path: .build/device-ipa/
+          if-no-files-found: warn
+          retention-days: 14
