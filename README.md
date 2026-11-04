@@ -2,7 +2,7 @@
 
 基于 [Hello-Minecraft/gzucm-pocket](https://github.com/Hello-Minecraft/gzucm-pocket) 的原生 SwiftUI 移植首版。最低部署版本 **iOS 18.0**，iOS 26 使用系统 Liquid Glass，自适应窄屏、宽屏与 iPhone Duo 内外屏空间变化。
 
-**交付状态：原生源码工程已上传至私有仓库，并已在 GitHub Mac 上通过 Xcode 编译与模拟器测试。** 最终代码已在 iOS 18.6 / iPhone 16e、iOS 26.2 / iPhone 17 Pro Max、iOS 27.1 / iPhone Duo 三组模拟器通过编译及四页界面测试。实际结果见 [验证记录](VERIFICATION.md) 和 [Actions 运行](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41772998925)。学校账号联调、实体设备和签名分发仍待完成；此目录不含可直接安装的签名 IPA。
+**交付状态：原生源码工程已上传至私有仓库，并已在 GitHub Mac 上通过 Xcode 编译与模拟器测试。** 最终代码已在 iOS 18.6 / iPhone 16e、iOS 26.2 / iPhone 17 Pro Max、iOS 27.1 / iPhone Duo 三组模拟器通过编译及四页、五种场景的界面测试。实际结果见 [验证记录](VERIFICATION.md) 和 [Actions 运行](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41775415155)。学校账号联调、实体设备和签名分发仍待完成；此目录不含可直接安装的签名 IPA。
 
 ## 已实现
 
@@ -52,6 +52,10 @@ xcodebuild -project GZUCMPocket.xcodeproj -scheme GZUCMPocket \
 ```
 
 工程已包含生成结果。增加/删除 App Swift 源文件后，可运行 `python3 tools/generate_project.py` 更新 Xcode 文件列表。生成脚本只需 Python 标准库；重绘图标的可选 `tools/make_icon.py` 需要 Pillow。
+
+## 课表字号预览
+
+普通启动跟随系统字号。验证产物中 `schedule_...png` 为普通字号课表，`schedule-large-text_...png` 是专门启用 `.accessibility3` 的辅助大字测试；请用前者查看默认布局。两种场景已分别通过 Duo 模拟器验证。
 
 ## 适配和已知边界
 

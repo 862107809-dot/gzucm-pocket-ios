@@ -36,7 +36,7 @@ GitHub 托管运行器是云端 Mac 虚拟机，Windows 上无需安装虚拟 ma
 2. 验证工程、资源、Info/Privacy plist、Scheme 与 UI 测试 target 引用。
 3. 执行 Python 模拟器选择器测试（现为26项）、29 项 PocketCore XCTest，以及 16 项实际电费脚本测试。
 4. 从实际清单中选出同一主版本和设备种类的模拟器，启动并等待启动完成。
-5. 通过 `xcodebuild test` 编译 App 与 UI 测试 runner。四页分别用虚构演示数据启动，验证横幅与主要页面元素出现；其中包含深色模式与辅助大字体场景。测试不读取学校账户、不自动登录学校系统。
+5. 通过 `xcodebuild test` 编译 App 与 UI 测试 runner。四页以五种场景使用虚构演示数据启动，验证横幅与主要页面元素出现；课表分别验证普通字号与辅助大字体，另包含深色模式场景。测试不读取学校账户、不自动登录学校系统。
 6. 保留编译日志、`.xcresult` 和截图附件。失败也上传已生成的证据；`status.json` 区分未开始、未运行、失败与通过。
 
 实际入口：
@@ -63,4 +63,4 @@ bash tools/verify-mac.sh --os-major 27 --device-kind duo
 
 ## 本工程实际结果
 
-2026-11-04，提交 `edd9a708e60e3d5f85690057774057b01c0f82f9` 的[运行 41772998925](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41772998925)三个任务均成功。实际系统为 iOS18.6 / iPhone16e、iOS26.2 / iPhone17ProMax、iOS27.1 / iPhoneDuo；结果范围和未验收项见 [VERIFICATION.md](../VERIFICATION.md)。
+2026-11-04，提交 `65bcc168bea5514309113e3b8f94d3364085d5e6` 的[运行 41775415155](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41775415155)三个任务均成功。实际系统为 iOS18.6 / iPhone16e、iOS26.2 / iPhone17ProMax、iOS27.1 / iPhoneDuo；结果范围和未验收项见 [VERIFICATION.md](../VERIFICATION.md)。

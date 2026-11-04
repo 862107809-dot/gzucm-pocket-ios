@@ -15,7 +15,7 @@
 
 ## 实际验证状态
 
-提交 `edd9a708e60e3d5f85690057774057b01c0f82f9` 已在下列模拟器完成原生编译和四页 UI 测试，[运行 41772998925](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41772998925)三条任务均为 success。
+提交 `65bcc168bea5514309113e3b8f94d3364085d5e6` 已在下列模拟器完成原生编译和四页 UI 测试，[运行 41775415155](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41775415155)三条任务均为 success。
 
 | 模拟器环境 | 已取得的证据 | 尚不能据此认定 |
 | --- | --- | --- |
@@ -23,7 +23,7 @@
 | iOS 26.2 · iPhone 17 Pro Max | Xcode26.3 编译、四页 UI、首屏截图 | Liquid Glass 所有交互、页面与设置已完整验收 |
 | iOS 27.1 · iPhone Duo | Xcode27.1 编译、四页 UI、当次默认模拟器配置的截图 | 外屏、内屏、半折、旋转与连续开合全姿态均通过 |
 
-四项 UI smoke tests 使用虚构数据，检查演示提示的可见区域、唯一可命中的登录按钮和主要页面元素，并保留截图与控件树；包含深色模式和 `.accessibility3` 字体。`.accessibility3` 不等于最大辅助字号，首屏截图也不遍历全部滚动内容。详细证据及截图复核见 [VERIFICATION.md](../VERIFICATION.md)。学校真实账号、实体 Duo 与最大辅助字号仍待验收。
+五项 UI smoke tests 使用虚构数据，检查演示提示的可见区域、唯一可命中的登录按钮和主要页面元素，并保留截图与控件树；包含深色模式和 `.accessibility3` 字体。`.accessibility3` 不等于最大辅助字号，首屏截图也不遍历全部滚动内容。详细证据及截图复核见 [VERIFICATION.md](../VERIFICATION.md)。学校真实账号、实体 Duo 与最大辅助字号仍待验收。
 
 ## Liquid Glass
 

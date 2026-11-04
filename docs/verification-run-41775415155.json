@@ -1,0 +1,272 @@
+{
+  "recorded_date": "2026-11-04",
+  "time_zone": "Asia/Shanghai",
+  "repository": "862107809-dot/gzucm-pocket-ios",
+  "code_commit": "65bcc168bea5514309113e3b8f94d3364085d5e6",
+  "run_id": 41775415155,
+  "run_url": "https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41775415155",
+  "conclusion": "success",
+  "test_counts_per_lane": {
+    "host_core_xctest": 29,
+    "python": 26,
+    "node_bridge": 16,
+    "simulator_ui_xctest": 5
+  },
+  "default_schedule_week_control_height_pt": 50.7,
+  "default_schedule_maximum_height_assertion_pt": 100,
+  "manual_review": "Reviewed the three default-size schedule screenshots; prior run41772998925 covers the previously reviewed accessibility and other page appearance. Production typography is unchanged.",
+  "lanes": [
+    {
+      "artifact": {
+        "id": 13296842452,
+        "name": "verification-ios27-duo-xcode27.1",
+        "size_in_bytes": 3521112,
+        "url": "https://api.github.com/repos/862107809-dot/gzucm-pocket-ios/actions/artifacts/13296842452",
+        "archive_download_url": "https://api.github.com/repos/862107809-dot/gzucm-pocket-ios/actions/artifacts/13296842452/zip",
+        "expired": false,
+        "created_at": "2026-11-04T04:54:06Z",
+        "expires_at": "2026-11-18T04:54:05Z",
+        "updated_at": "2026-11-04T04:54:06Z",
+        "digest": "sha256:9241eb218a8978c3618bd462942f61d7ec8bba824053cb617349b7e72b07ff12",
+        "workflow_run": {
+          "id": 41775415155,
+          "repository_id": 1444392104,
+          "head_repository_id": 1444392104,
+          "head_branch": "main",
+          "head_sha": "65bcc168bea5514309113e3b8f94d3364085d5e6"
+        }
+      },
+      "status": {
+        "status": "passed",
+        "exit_status": 0,
+        "requested_os_major": 27,
+        "device_kind": "duo",
+        "phase": "complete",
+        "selected_udid": "D0D80A96-1387-4502-BEFD-3CB0955AD02A",
+        "booted_by_script": true,
+        "sdk_version": "27.1",
+        "xcode_version": "27.1",
+        "started_at": "2026-11-04T04:48:40Z",
+        "finished_at": "2026-11-04T04:54:04.921140+00:00",
+        "native_result_bundle": "native-ui-tests-20261104T044840Z-14512.xcresult",
+        "simulator_shutdown_exit_status": "0",
+        "attachments_export_exit_status": "0",
+        "checks": {
+          "configuration_lint": "passed",
+          "project_checks": "passed",
+          "python_tests": "passed",
+          "core_tests": "passed",
+          "bridge_tests": "passed",
+          "native_ui_tests": "passed"
+        }
+      },
+      "selected": {
+        "udid": "D0D80A96-1387-4502-BEFD-3CB0955AD02A",
+        "name": "iPhone Duo",
+        "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-27-1",
+        "os_version": "27.1",
+        "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-Duo"
+      },
+      "screenshots": [
+        {
+          "test": "GZUCMPocketUITests/testGradesInDarkMode()",
+          "name": "grades-dark_0_502124F4-AC1D-4DD2-9AB4-4FA7E44A0D74.png",
+          "sha256": "13a014b9696be8d0a139ea944e34bd5eaf2b481c6d7afe0d9dbcb747356d85ef",
+          "path_in_artifact": "attachments-20261104T044840Z-14512/9ED9993B-1DDD-43FC-ACFC-7B8C0EA812D3.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testPowerInDarkMode()",
+          "name": "power-dark_0_578E5B02-C39C-4D3F-B2F0-EF5764C95BAE.png",
+          "sha256": "54f12ea4c6185245b53dd53fb9b2a1b415095c8cc948bf6ea57abf38f1aa9aab",
+          "path_in_artifact": "attachments-20261104T044840Z-14512/008EE108-9DC9-4832-8A45-D0092D6AA890.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testScheduleAtDefaultTextSize()",
+          "name": "schedule_0_8301D258-2F24-4846-A2FA-261CF630478B.png",
+          "sha256": "9c62b5c621a5ff63346fade3b462c337f793c95943b87b23fd9f9e829fb1a181",
+          "path_in_artifact": "attachments-20261104T044840Z-14512/2E54062E-7765-4AA3-8ECB-4C294DF32B77.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testScheduleWithAccessibilityText()",
+          "name": "schedule-large-text_0_8EC31BA4-4D13-497A-AEBA-5762E127C73D.png",
+          "sha256": "de156f54f5bb589b6f37661f39628e727d1060165c8a03954884440d9fcfc5c5",
+          "path_in_artifact": "attachments-20261104T044840Z-14512/7F49A178-F655-4503-B660-52DAB5F4B255.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testTodayDemo()",
+          "name": "today_0_CF89850E-CBCB-4B51-BEEF-A66977F78A3D.png",
+          "sha256": "1e3858719a724ccda4da079137ff166a490ebc7909c965e3546ab1a38b368b6f",
+          "path_in_artifact": "attachments-20261104T044840Z-14512/086D6DA4-D526-4FEF-856A-25915099173E.png"
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "id": 13296319935,
+        "name": "verification-ios26-iphone-xcode26.3",
+        "size_in_bytes": 3964981,
+        "url": "https://api.github.com/repos/862107809-dot/gzucm-pocket-ios/actions/artifacts/13296319935",
+        "archive_download_url": "https://api.github.com/repos/862107809-dot/gzucm-pocket-ios/actions/artifacts/13296319935/zip",
+        "expired": false,
+        "created_at": "2026-11-04T04:52:45Z",
+        "expires_at": "2026-11-18T04:52:43Z",
+        "updated_at": "2026-11-04T04:52:45Z",
+        "digest": "sha256:17b1056e6955f0a83c5b7a074c9fa7bfd36fd92a2484e8f8fc5fe89a665ee2f0",
+        "workflow_run": {
+          "id": 41775415155,
+          "repository_id": 1444392104,
+          "head_repository_id": 1444392104,
+          "head_branch": "main",
+          "head_sha": "65bcc168bea5514309113e3b8f94d3364085d5e6"
+        }
+      },
+      "status": {
+        "status": "passed",
+        "exit_status": 0,
+        "requested_os_major": 26,
+        "device_kind": "iphone",
+        "phase": "complete",
+        "selected_udid": "A79AB685-CC5B-4589-9565-0DF10B54130F",
+        "booted_by_script": true,
+        "sdk_version": "26.2",
+        "xcode_version": "26.3",
+        "started_at": "2026-11-04T04:48:39Z",
+        "finished_at": "2026-11-04T04:52:43.425437+00:00",
+        "native_result_bundle": "native-ui-tests-20261104T044839Z-4250.xcresult",
+        "simulator_shutdown_exit_status": "0",
+        "attachments_export_exit_status": "0",
+        "checks": {
+          "configuration_lint": "passed",
+          "project_checks": "passed",
+          "python_tests": "passed",
+          "core_tests": "passed",
+          "bridge_tests": "passed",
+          "native_ui_tests": "passed"
+        }
+      },
+      "selected": {
+        "udid": "A79AB685-CC5B-4589-9565-0DF10B54130F",
+        "name": "iPhone 17 Pro Max",
+        "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-2",
+        "os_version": "26.2",
+        "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max"
+      },
+      "screenshots": [
+        {
+          "test": "GZUCMPocketUITests/testGradesInDarkMode()",
+          "name": "grades-dark_0_0C477CB2-1F33-4598-A25B-C89E018A4622.png",
+          "sha256": "3d85c10d07d60ecfa1c3092def3df5d3815605bcb0ec6be42063e0e5f5bd1c91",
+          "path_in_artifact": "attachments-20261104T044839Z-4250/CEAA031C-531B-4B76-B572-53BF941E3818.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testPowerInDarkMode()",
+          "name": "power-dark_0_D464EC17-3CFF-4219-80F4-1CFCE41424F1.png",
+          "sha256": "1ba7a4ac28b8ff54295f6c14e1d745c39bc0f94ad0d00e7ae0b70e52d6587bc4",
+          "path_in_artifact": "attachments-20261104T044839Z-4250/34136E90-D0B3-4333-9C08-40D197AC1E21.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testScheduleAtDefaultTextSize()",
+          "name": "schedule_0_78C0F7DC-9BE1-4DD1-A58A-954F9293F8E4.png",
+          "sha256": "bdb5d4898a1469c37a4f73926b6f71404fec21171d0f03f1ca6c60ca3efef8f7",
+          "path_in_artifact": "attachments-20261104T044839Z-4250/A9394811-9E85-45B5-B5C1-3FDDA956783C.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testScheduleWithAccessibilityText()",
+          "name": "schedule-large-text_0_45A06D4B-84EB-477C-A782-13B41D5114C8.png",
+          "sha256": "0826a89fed39602bd829e89baf46433eb3a6c72babc518808f77235749a24191",
+          "path_in_artifact": "attachments-20261104T044839Z-4250/4494758B-B030-4221-AAF2-A0314E74D30B.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testTodayDemo()",
+          "name": "today_0_25C5E3E4-0608-4FB8-9434-2026DE368B53.png",
+          "sha256": "a9d71a052298c2585b617e89f59337e0ec7892afce0fd5879bf1eff95c0b8ddc",
+          "path_in_artifact": "attachments-20261104T044839Z-4250/14ED9AE5-3824-4EE7-B8EF-49DE52586B40.png"
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "id": 13296133840,
+        "name": "verification-ios18-iphone-xcode26.3",
+        "size_in_bytes": 4161918,
+        "url": "https://api.github.com/repos/862107809-dot/gzucm-pocket-ios/actions/artifacts/13296133840",
+        "archive_download_url": "https://api.github.com/repos/862107809-dot/gzucm-pocket-ios/actions/artifacts/13296133840/zip",
+        "expired": false,
+        "created_at": "2026-11-04T04:51:18Z",
+        "expires_at": "2026-11-18T04:51:17Z",
+        "updated_at": "2026-11-04T04:51:18Z",
+        "digest": "sha256:e5878a4916350a632addad3a61ab9a6fa3276c82fb10f533a60310eb26b8fd6f",
+        "workflow_run": {
+          "id": 41775415155,
+          "repository_id": 1444392104,
+          "head_repository_id": 1444392104,
+          "head_branch": "main",
+          "head_sha": "65bcc168bea5514309113e3b8f94d3364085d5e6"
+        }
+      },
+      "status": {
+        "status": "passed",
+        "exit_status": 0,
+        "requested_os_major": 18,
+        "device_kind": "iphone",
+        "phase": "complete",
+        "selected_udid": "05ECB474-A92B-4B24-8AC7-C1B403D14F07",
+        "booted_by_script": true,
+        "sdk_version": "26.2",
+        "xcode_version": "26.3",
+        "started_at": "2026-11-04T04:48:39Z",
+        "finished_at": "2026-11-04T04:51:16.688111+00:00",
+        "native_result_bundle": "native-ui-tests-20261104T044839Z-3261.xcresult",
+        "simulator_shutdown_exit_status": "0",
+        "attachments_export_exit_status": "0",
+        "checks": {
+          "configuration_lint": "passed",
+          "project_checks": "passed",
+          "python_tests": "passed",
+          "core_tests": "passed",
+          "bridge_tests": "passed",
+          "native_ui_tests": "passed"
+        }
+      },
+      "selected": {
+        "udid": "05ECB474-A92B-4B24-8AC7-C1B403D14F07",
+        "name": "iPhone 16e",
+        "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-18-6",
+        "os_version": "18.6",
+        "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-16e"
+      },
+      "screenshots": [
+        {
+          "test": "GZUCMPocketUITests/testGradesInDarkMode()",
+          "name": "grades-dark_0_79FD8C92-8076-451E-A1C2-20AC7F1A5674.png",
+          "sha256": "bdd788e18809d1e05507bf52ee4f5ba359f29c5c86c8d2582d3cb07bbac7686e",
+          "path_in_artifact": "attachments-20261104T044839Z-3261/E663BE77-0B2E-47FA-9A5A-B6C02978E488.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testPowerInDarkMode()",
+          "name": "power-dark_0_F0C36E92-F67C-41C6-87B4-F7631CFAFE6F.png",
+          "sha256": "193caad3b38c99ea062e4e43ff3c3c0e901c6eb9fce182cbd21c355991d0652e",
+          "path_in_artifact": "attachments-20261104T044839Z-3261/5E52B925-FF4F-4764-A9F5-549E80241CDA.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testScheduleAtDefaultTextSize()",
+          "name": "schedule_0_5ABAE0E3-5692-4EBF-9995-9F4AA304FAE5.png",
+          "sha256": "e218d283d2acb3ab2a79644ac52bceb0e692891c5938b731cc844f00e6a62f89",
+          "path_in_artifact": "attachments-20261104T044839Z-3261/769EF659-29BB-44B7-B4E9-BD4F05407EDA.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testScheduleWithAccessibilityText()",
+          "name": "schedule-large-text_0_58D3B882-5CAF-43EB-8EB8-8FF59E6EA006.png",
+          "sha256": "d1d9a2967a01da32aa36e45b9a6d775820c31aea752f65974b69214281882c70",
+          "path_in_artifact": "attachments-20261104T044839Z-3261/BC381A90-46B1-470D-9F6C-6404B383556C.png"
+        },
+        {
+          "test": "GZUCMPocketUITests/testTodayDemo()",
+          "name": "today_0_B2650770-5BC5-469C-9722-6A6F9665750B.png",
+          "sha256": "a7fb70fb78884d2b0b7fea06eaae32de95405df3169dfe826217bbfe19987b8e",
+          "path_in_artifact": "attachments-20261104T044839Z-3261/E8D61B40-7245-4C6F-A48B-340619C6FA8B.png"
+        }
+      ]
+    }
+  ]
+}
