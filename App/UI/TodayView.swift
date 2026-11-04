@@ -42,7 +42,7 @@ struct TodayView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(Date.now.formatted(.dateTime.month(.wide).day().weekday(.wide)))
+            Text(SchoolDate.display(.now, template: "MMMMdEEEE"))
                 .font(.subheadline.weight(.medium)).foregroundStyle(.secondary)
             Text(store.todayCourses.isEmpty ? "留一点时间，给自己。" : "新的一天，从容开始。")
                 .accessibilityIdentifier("today-header")

@@ -68,8 +68,8 @@ struct ScheduleView: View {
                     Text("第 \(store.selectedWeek) 周").font(.headline)
                     let start = semester.date(week: store.selectedWeek, weekday: 1)
                     let end = semester.date(week: store.selectedWeek, weekday: 7)
-                    Text("\(start.formatted(.dateTime.month().day())) – \(end.formatted(.dateTime.month().day()))")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("\(SchoolDate.display(start, template: "MMMd")) – \(SchoolDate.display(end, template: "MMMd"))")
+                        .font(.caption).foregroundStyle(Color.secondary)
                 }.padding(.vertical, 6)
             }
             .accessibilityIdentifier("schedule-week-control")
@@ -95,7 +95,7 @@ struct ScheduleView: View {
                         Button { store.selectedDay = day } label: {
                             VStack(spacing: 8) {
                                 Text("周\(weekdays[day - 1])").font(.caption)
-                                Text(date.formatted(.dateTime.day())).font(.system(.headline, design: .rounded))
+                                Text(SchoolDate.display(date, template: "d")).font(.system(.headline, design: .rounded))
                             }
                             .frame(minWidth: 40, minHeight: 60).padding(5)
                             .foregroundStyle(store.selectedDay == day ? (colorScheme == .dark ? Color.black : Color.white) : Color.primary)
@@ -137,7 +137,7 @@ struct ScheduleView: View {
                     VStack(spacing: 0) {
                         VStack(spacing: 4) {
                             Text("周\(weekdays[day - 1])").font(.caption.bold())
-                            Text(semester.date(week: store.selectedWeek, weekday: day).formatted(.dateTime.month().day())).font(.caption2).foregroundStyle(.secondary)
+                            Text(SchoolDate.display(semester.date(week: store.selectedWeek, weekday: day), template: "MMMd")).font(.caption2).foregroundStyle(.secondary)
                         }.frame(height: 56)
                         ZStack(alignment: .topLeading) {
                             VStack(spacing: 0) {

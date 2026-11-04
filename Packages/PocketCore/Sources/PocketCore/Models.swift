@@ -28,6 +28,16 @@ public enum SchoolDate {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
     }
+    /// Display school calendar dates in Guangzhou even when the device uses another timezone/calendar.
+    /// A per-call formatter keeps this synchronous helper safe across UI and background tasks.
+    public static func display(_ date: Date, template: String, locale: Locale = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.setLocalizedDateFormatFromTemplate(template)
+        return formatter.string(from: date)
+    }
     public static func addingDays(_ count: Int, to date: Date) -> Date {
         calendar.date(byAdding: .day, value: count, to: date) ?? date
     }

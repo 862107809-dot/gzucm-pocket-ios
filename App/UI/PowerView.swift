@@ -50,12 +50,23 @@ struct PowerView: View {
                         } else {
                             Chart(Array(power.daily.sorted { $0.date < $1.date }.suffix(30))) { day in
                                 if let date = SchoolDate.parse(day.date) {
-                                    BarMark(x: .value("日期", date, unit: .day), y: .value("用电量", day.usage))
+                                    BarMark(x: .value("日期", date, unit: .day, calendar: SchoolDate.calendar), y: .value("用电量", day.usage))
                                         .foregroundStyle(PocketTheme.jade.gradient).cornerRadius(4)
                                 }
                             }
                             .chartYAxisLabel("度")
-                            .chartXAxis { AxisMarks(values: .stride(by: .day, count: max(1, min(30, power.daily.count) / 6))) { _ in AxisValueLabel(format: .dateTime.day()); AxisGridLine() } }
+                            .chartXAxis {
+                                AxisMarks(values: .stride(by: .day, count: max(1, min(30, power.daily.count) / 6), calendar: SchoolDate.calendar)) { value in
+                                    AxisValueLabel {
+                                        if let date = value.as(Date.self) {
+                                            Text(SchoolDate.display(date, template: "d"))
+                                        }
+                                    }
+                                    AxisGridLine()
+                                }
+                            }
+                            .environment(\.calendar, SchoolDate.calendar)
+                            .environment(\.timeZone, SchoolDate.calendar.timeZone)
                             .frame(height: 210)
                             .accessibilityLabel("每日用电趋势，下方列表提供完整数值")
                         }

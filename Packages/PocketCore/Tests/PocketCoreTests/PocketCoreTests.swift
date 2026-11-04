@@ -180,6 +180,34 @@ final class PocketCoreTests: XCTestCase {
         XCTAssertNil(SchoolDate.parse("not-date"))
         XCTAssertEqual(SchoolDate.parse("2026-10-26 08:30:00").map(SchoolDate.iso), "2026-10-26")
     }
+    func testSchoolDateDisplayKeepsMondayAcrossHostTimeZones() throws {
+        // XCTest runs this case serially. Restore the process-local default even if an assertion fails.
+        let originalTimeZone = NSTimeZone.default
+        defer { NSTimeZone.default = originalTimeZone }
+        let instant = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-01T16:00:00Z"))
+        let locale = Locale(identifier: "zh_CN")
+        for identifier in ["UTC", "America/New_York"] {
+            NSTimeZone.default = try XCTUnwrap(TimeZone(identifier: identifier))
+            // The same instant is Sunday on these hosts, but Monday midnight at school.
+            XCTAssertEqual(SchoolDate.display(instant, template: "MMMd", locale: locale), "11月2日", identifier)
+            XCTAssertEqual(SchoolDate.display(instant, template: "d", locale: locale), "2日", identifier)
+            XCTAssertEqual(SchoolDate.display(instant, template: "EEEE", locale: locale), "星期一", identifier)
+        }
+    }
+    func testTodayHeaderUsesShanghaiDateAtMidnightBoundary() throws {
+        let originalTimeZone = NSTimeZone.default
+        defer { NSTimeZone.default = originalTimeZone }
+        let instant = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-02T16:30:00Z"))
+        let locale = Locale(identifier: "zh_CN")
+        for identifier in ["UTC", "America/New_York"] {
+            NSTimeZone.default = try XCTUnwrap(TimeZone(identifier: identifier))
+            XCTAssertEqual(SchoolDate.iso(instant), "2026-11-03", identifier)
+            XCTAssertEqual(SchoolDate.display(instant, template: "MMMd", locale: locale), "11月3日", identifier)
+            XCTAssertEqual(SchoolDate.display(instant, template: "EEEE", locale: locale), "星期二", identifier)
+            let header = SchoolDate.display(instant, template: "MMMMdEEEE", locale: locale)
+            XCTAssertTrue(header.contains("11月3日") && header.contains("星期二"), header)
+        }
+    }
     func testSchoolPeriodTimesIncludeFourteenConsecutiveUnits() {
         XCTAssertEqual(ClassTimes.start(5), "13:10")
         XCTAssertEqual(ClassTimes.start(10), "17:20")
