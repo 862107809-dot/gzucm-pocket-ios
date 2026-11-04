@@ -8,6 +8,12 @@ final class GZUCMPocketUITests: XCTestCase {
         await checkDemo(tab: "today", marker: "today-header")
     }
 
+    func testScheduleAtDefaultTextSize() async {
+        // Capture the everyday appearance separately from the accessibility stress case.
+        // The week selector should leave useful space for the course list at default text size.
+        await checkDemo(tab: "schedule", marker: "schedule-week-control", maximumMarkerHeight: 100)
+    }
+
     func testScheduleWithAccessibilityText() async {
         await checkDemo(tab: "schedule", marker: "schedule-week-control", arguments: ["--large-text"])
     }
@@ -20,7 +26,7 @@ final class GZUCMPocketUITests: XCTestCase {
         await checkDemo(tab: "power", marker: "power-balance", arguments: ["--dark"])
     }
 
-    private func checkDemo(tab: String, marker: String, arguments: [String] = [], file: StaticString = #filePath, line: UInt = #line) async {
+    private func checkDemo(tab: String, marker: String, arguments: [String] = [], maximumMarkerHeight: CGFloat? = nil, file: StaticString = #filePath, line: UInt = #line) async {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--demo", "--tab", tab, "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"] + arguments
@@ -52,6 +58,9 @@ final class GZUCMPocketUITests: XCTestCase {
         XCTAssertTrue(bannerVisible && hasVisibleDisclaimer(banners, screen: app.frame), "Fictional demo disclaimer has no positive frame intersecting the screen on \(tab)", file: file, line: line)
         XCTAssertTrue(loginHittable && hittableCount(loginButtons) == 1, "Expected exactly one visible, unobscured demo login button on \(tab)", file: file, line: line)
         XCTAssertTrue(contentHittable && content.isHittable, "Demo content is clipped or obscured for \(tab): \(marker)", file: file, line: line)
+        if let maximumMarkerHeight {
+            XCTAssertLessThanOrEqual(content.frame.height, maximumMarkerHeight, "Default-size schedule controls leave too little space for courses", file: file, line: line)
+        }
     }
 
     private func hasVisibleDisclaimer(_ query: XCUIElementQuery, screen: CGRect) -> Bool {
