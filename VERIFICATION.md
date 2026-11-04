@@ -1,45 +1,49 @@
 # 验证记录
 
-日期：2026-11-03（Asia/Shanghai）。环境：Windows，无 Swift 编译器、Xcode、Apple SDK、iPhone 模拟器和学校登录账号。
+记录日期：2026-11-04（Asia/Shanghai）；各次执行的 UTC 时间保留在产物中。开发主机为 Windows，Apple 原生构建与测试通过 GitHub 托管 Mac 实际执行。
 
-## 实际执行
+## 本次原生验证
 
-| 检查 | 结果 |
-| --- | --- |
-| Xcode 工程、源文件清单与资源引用 | 通过：13 个 App Swift 文件，PocketCore 本地包，4 个资源条目 |
-| PBX 对象引用与独立 OpenStep 解析 | 后续已加入 UI test target；最新结果见文末记录 |
-| Info/Privacy plist、Assets/Fixture JSON、Scheme/Workspace XML | 通过 |
-| Swift 文件的 tree-sitter 语法树 | 通过：无 ERROR 或 missing 节点。后续新增 UI tests 的结果见文末；此检查不解析 Apple API 类型，不等同于 Swift 编译 |
-| 实际交付的 EcardBridge.js | Node 内置测试运行器，16/16 通过 |
-| 许可证 | 原项目 MIT 原文保留在 LICENSE 与 App/Resources/ThirdPartyNotices.txt |
-| 数据/会话/提醒静态复核 | 修复演示通知、退出后的异步通知提交、旧请求重写 Cookie、部分课表混合重复、金额余额估算天数等问题 |
+- 私有仓库：[862107809-dot/gzucm-pocket-ios](https://github.com/862107809-dot/gzucm-pocket-ios)。上传源码前已确认私有可见性。
+- 被测代码提交：`edd9a708e60e3d5f85690057774057b01c0f82f9`。
+- [GitHub Actions 运行 41772998925](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41772998925)。最终回归状态见下表；未用此前提交的结果替代本次结果。
 
-电费脚本测试包含：受限来源/主框架、真实零余额、缺失余额、非成功响应、dateTime、排序去重与日期校验、先明细后余额、旧房间响应、fetch 与 XHR、分页请求、令牌不进入消息、全部月份完成标记、合法空明细、失败/截断未完成、余额变化后的重新同步。
+| Runner / Xcode | 实际设备 / 系统 | 结果 |
+| --- | --- | --- |
+| macos-15 / Xcode 26.3，Simulator SDK 26.2 | iPhone 16e / iOS 18.6 | 通过 |
+| macos-15 / Xcode 26.3，Simulator SDK 26.2 | iPhone 17 Pro Max / iOS 26.2 | 通过 |
+| xcode-27 / Xcode 27.1，Simulator SDK 27.1 | iPhone Duo / iOS 27.1 | 通过 |
 
-tree-sitter、Swift grammar 与 OpenStep 解析器安装在本地可选 `.tools/python`，不属于 App 运行时，也不进入源码交付压缩包。Mac 上使用 Xcode/Swift 原生检查。
+每条成功任务实际执行：工程及 plist 检查、26 项 Python 工具测试、29 项宿主 Mac 上的 PocketCore XCTest、16 项电费网页桥接测试，以及 App 编译和 4 项原生 UI 测试。各类测试独立计数，三台环境重复执行不会被当作更多独立用例。UI 测试使用虚构演示数据，不进行学校登录。
 
-## 已提供但未执行
+四个 UI 场景为「今日」「辅助大字体课表」「深色成绩」「深色电费」。断言检查演示提示具有可见屏幕区域、恰有一个可命中的登录按钮、主要页面标识可命中。测试在断言前保存原始截图和控件树。该覆盖验证了应用启动及指定元素；没有遍历全部交互或检查所有滚动内容。
 
-- PocketCore 的 27 个 XCTest 方法和 3 个脱敏/合成 JSON 样例，覆盖校历、周日归属、学期末周日、课表总表回退、绩点范围/缺失值、研究生连续节次、响应异常、认证过期、表单编码等。
-- `tools/verify-mac.sh`：资源检查、`swift test`、网页脚本测试、iOS Simulator 编译。
-- `.github/workflows/ios.yml`：Mac CI 配置。本次没有推送仓库、触发 CI 或取得远端构建结果。
+## 证据与截图复核
 
-## 仍需完成的验收
+每条任务的 artifact 包含 `status.json`、`selected.json`、模拟器完整清单、Xcode/SDK 版本、测试日志、原生 `.xcresult`、截图和控件树。工作流保留产物 14 天，可在上述 Actions 运行页面下载；证据到期后需重新运行。后续纯文档提交不会触发原生回归，应以此处记录的代码提交定位结果。
 
-1. Xcode 26+ 原生编译与类型检查，执行 XCTest。
-2. iOS 18 与 iOS 26 模拟器/真机运行，核实旧系统材质回退与新系统 Liquid Glass。
-3. 学校本科、研究生和一卡通真实账号联调；核对课程/分数/电量、SSO、验证码、绑定房间及过期重新登录。
-4. 用支持 Duo 的 Xcode 27.1+ 检查外屏/内屏/半折/旋转/键盘/安全区域及界面状态保留。
-5. 大字体、VoiceOver、减少透明度、深浅色、离线、通知授权拒绝、退出与切换账户。
-6. 选择开发 Team 和唯一 Bundle Identifier，真机签名安装；如需分发，再完成相应签名与商店要求。
+本次运行总体结果为 **success**，三个 job 均为 **success**。已下载三个最终原始产物，并逐一核对 GitHub 返回的 SHA-256；日志中的各类用例数与 `status.json` 均一致。实际版本、设备、完整状态和原始截图散列见 [机器可读证据摘要](docs/verification-run-41772998925.json)。
 
-交付为实现首版源码，不能据本记录声称 App 已通过 Apple 编译、可直接安装、完成学校生产联调或已经验证 Duo 全姿态兼容。完整设备验收表见 docs/ADAPTATION.md。
+最终 12 张首屏原图已人工复核：三组今日页均为「11月4日 星期三」，大字体课表周一2日、周三4日，周范围11月2–8日；演示提示与导航标题分离，课程时间08:30–10:00完整，日期副标题改为系统灰后可读性改善。深色成绩与电费的主要指标、首个完整卡片未见明显互相遮挡或硬截断。
 
-## 后续：GitHub Mac 验证准备
+复核范围限于各次截图的可见区域。横向日期和后续课程可以滚动；iOS26电费轴能看到连续日期，部分刻度位于浮动标签栏下，iOS18/Duo电费轴位于首屏视口外，不能据此认证整个图表已完整可读。Duo 图来自当次默认模拟器配置，不代表折叠姿态的遍历测试。
 
-- 新增 `GZUCMPocketUITests` target、四项演示 UI smoke tests 与自动截图，调试启动参数不进入 Release 功能。
-- 更新工程检查：13 个 App Swift 源文件、1 个 UI 测试源文件、66 个 PBX 对象，独立 OpenStep 解析通过；20 个 Swift 文件语法解析通过。
-- 新增模拟器选择工具：24 项 Python 测试已在 Windows 执行通过，严格选择指定 iOS 主版本和设备类型。
-- 工作流 YAML 已通过解析和矩阵/权限/产物规则检查；Shell 完整语法树无错误，5 段嵌入 Python 通过语法检查。未在 Windows 执行 Bash 或 Apple 原生工具。
-- Actions 现配置三个明确环境：`macos-15/Xcode26.3/iOS18`、`macos-26/Xcode26.6/iOS26`、`xcode-27/Xcode27.1/iPhone Duo`。镜像列出设备不等同于本账号实际运行通过。
-- 当前尚未取得远端构建结果。需在仓库确认私有可见性并上传工作流后触发，不提前填写原生成功结论。
+前几轮真实执行中修复了两类构建/工具问题：模拟器 runtime 标识省略版本末位时的选择失败，以及 App Debug 同时编译 x86_64/arm64 与本地包活动架构不一致。截图复核又修复了演示横幅遮住导航标题、辅助大字体使时间数字分行的问题。另已修复海外时区下学校日期提前一天与周范围说明对比度不足的问题，电费日期分箱和刻度也统一为学校时区，新增两项跨时区测试。UI 测试改为对真实登录按钮检查可命中性，对被动提示文字检查可见区域。
+
+## 测试覆盖与本地检查
+
+- PocketCore：校历、周日归属、学期末边界、课表总表回退、绩点范围/缺失值、研究生连续节次、异常响应、认证过期、表单编码等。29 项 XCTest 已在远端 Mac 实际执行。
+- 电费桥接：HTTPS 来源与主框架限制、真实零余额/缺失余额、非成功响应、日期校验、排序去重、先明细后余额、旧房间响应、fetch/XHR、分页、令牌不进入消息、完整月份标记、失败/截断、余额变化后重新同步。16 项测试已实际执行。
+- Python：26 项严格模拟器选择测试，包括普通 iPhone 与 Duo 区分、指定系统主版本、runtime 标识与版本前缀一致性。
+- Windows 检查：13 个 App Swift 与 1 个 UI 测试源文件的 target 成员关系、资源/JSON/XML/plist、66 个 PBX 对象及独立 OpenStep 解析；20 个 Swift 文件 tree-sitter 语法解析；工作流和 Bash 语法解析。语法解析不替代编译，原生编译结论来自 Mac CI。
+- 原项目 MIT 许可证和第三方声明已保留。可选解析器位于本地 `.tools/python`，不进入 App 或源码包。
+
+## 尚未验证
+
+1. 本科、研究生、一卡通真实账号端到端联调；核对课程、成绩、余额、分页、SSO、验证码、房间绑定、会话过期及重新登录。
+2. iOS 18.0 本身与实体 iPhone；已执行的旧系统 runtime 是 iOS 18.6。部署目标 18.0 不等于逐一实测所有版本。
+3. 实体 Duo，以及外屏/内屏切换、书本/笔记本半折、折痕、摄像头避让、旋转、键盘和连续缩放。默认 Duo 模拟器截图不代表全部姿态。
+4. 最大/最小辅助字号、VoiceOver、减少透明度/动态效果、全部页面与表单，以及真实离线/通知权限/账户切换。已测 `.accessibility3` 不等于最大字号。
+5. Release 归档、真机签名安装、TestFlight 与 App Store 分发。CI 使用 Debug Simulator、`CODE_SIGNING_ALLOWED=NO`，没有签名 IPA。
+
+上述范围以外的兼容性不由本记录保证。后续设备检查见 [ADAPTATION.md](docs/ADAPTATION.md)，Mac 环境选择与复现命令见 [MAC_VERIFICATION.md](docs/MAC_VERIFICATION.md)。

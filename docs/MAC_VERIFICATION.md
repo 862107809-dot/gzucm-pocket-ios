@@ -22,7 +22,7 @@ Apple 的 [Xcode 27 说明](https://developer.apple.com/documentation/xcode-rele
 | Liquid Glass 系统 | `macos-15` | `26.3` | iOS **26** 普通 iPhone |
 | Duo 布局 | `xcode-27` | `27.1` | iOS **27** 的 **iPhone Duo** |
 
-配置位于 `.github/workflows/ios.yml`，上传至仓库后 push / pull_request 自动运行，也支持 Actions 页手动运行。
+配置位于 `.github/workflows/ios.yml`，代码或测试的 push / pull_request 自动运行，也支持 Actions 页手动运行。仅修改 Markdown、`docs/`、`design-system/` 或 LICENSE 时不自动重跑。
 
 首次实际运行中 `macos-26` 队列长时间未获分配，因此 iOS26 任务改用已成功分配且实际清单包含 iOS26.2 的 `macos-15` / Xcode26.3。macOS 主机版本与被测 iOS 版本分别记录，不将它们混为一谈。
 
@@ -34,7 +34,7 @@ GitHub 托管运行器是云端 Mac 虚拟机，Windows 上无需安装虚拟 ma
 
 1. 记录所选 Xcode、Simulator SDK 与完整 `simctl` JSON 清单。
 2. 验证工程、资源、Info/Privacy plist、Scheme 与 UI 测试 target 引用。
-3. 执行 Python 模拟器选择器测试（现为26项）、27 项 PocketCore XCTest，以及 16 项实际电费脚本测试。
+3. 执行 Python 模拟器选择器测试（现为26项）、29 项 PocketCore XCTest，以及 16 项实际电费脚本测试。
 4. 从实际清单中选出同一主版本和设备种类的模拟器，启动并等待启动完成。
 5. 通过 `xcodebuild test` 编译 App 与 UI 测试 runner。四页分别用虚构演示数据启动，验证横幅与主要页面元素出现；其中包含深色模式与辅助大字体场景。测试不读取学校账户、不自动登录学校系统。
 6. 保留编译日志、`.xcresult` 和截图附件。失败也上传已生成的证据；`status.json` 区分未开始、未运行、失败与通过。
@@ -60,3 +60,7 @@ bash tools/verify-mac.sh --os-major 27 --device-kind duo
 - `attachments-*`：测试截图；若导出失败，截图仍可在原始 `.xcresult` 中查看。
 
 截图需要人工复核。页面成功启动不能证明 Liquid Glass 的每个视觉细节、大字体所有内容无截断，或 Duo 半折、折痕与摄像头的每一种姿态都适配。学校认证、真实课程、电量、通知权限和安装签名仍须后续验收。详见 [ADAPTATION.md](ADAPTATION.md)。
+
+## 本工程实际结果
+
+2026-11-04，提交 `edd9a708e60e3d5f85690057774057b01c0f82f9` 的[运行 41772998925](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41772998925)三个任务均成功。实际系统为 iOS18.6 / iPhone16e、iOS26.2 / iPhone17ProMax、iOS27.1 / iPhoneDuo；结果范围和未验收项见 [VERIFICATION.md](../VERIFICATION.md)。

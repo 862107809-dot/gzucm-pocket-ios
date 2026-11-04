@@ -2,7 +2,7 @@
 
 基于 [Hello-Minecraft/gzucm-pocket](https://github.com/Hello-Minecraft/gzucm-pocket) 的原生 SwiftUI 移植首版。最低部署版本 **iOS 18.0**，iOS 26 使用系统 Liquid Glass，自适应窄屏、宽屏与 iPhone Duo 内外屏空间变化。
 
-**交付状态：源码工程与本机可执行检查已完成；尚未经 Xcode 编译、学校账号联调或 iPhone Duo 真机验证。此目录不包含可直接安装的签名 IPA。** 开发环境为 Windows，不能在此处执行 Apple iOS SDK 构建。实际设备兼容结论须以 Mac 构建与验收结果为准。
+**交付状态：原生源码工程已上传至私有仓库，并已在 GitHub Mac 上通过 Xcode 编译与模拟器测试。** 最终代码已在 iOS 18.6 / iPhone 16e、iOS 26.2 / iPhone 17 Pro Max、iOS 27.1 / iPhone Duo 三组模拟器通过编译及四页界面测试。实际结果见 [验证记录](VERIFICATION.md) 和 [Actions 运行](https://github.com/862107809-dot/gzucm-pocket-ios/actions/runs/41772998925)。学校账号联调、实体设备和签名分发仍待完成；此目录不含可直接安装的签名 IPA。
 
 ## 已实现
 
@@ -38,7 +38,7 @@ Mac 上一次执行：
 bash tools/verify-mac.sh
 ```
 
-该脚本检查工程资源，运行 `PocketCore` XCTest、网页桥接与 Python 工具测试，再在指定模拟器执行四页原生 UI 测试并保留截图。Windows 上无法执行原生步骤，实际远端结果另行记录。GitHub Actions 配置位于 `.github/workflows/ios.yml`，提供 iOS18、iOS26 与 Duo 三条任务。选型、工具链清单和结果阅读方式见 [GitHub Mac 验证说明](docs/MAC_VERIFICATION.md)。
+该脚本检查工程资源，运行 `PocketCore` XCTest、网页桥接与 Python 工具测试，再在指定模拟器执行四页原生 UI 测试并保留截图。开发主机为 Windows，Apple 原生步骤已交由 GitHub Mac 实际执行，结果记录在 [VERIFICATION.md](VERIFICATION.md)。GitHub Actions 配置位于 `.github/workflows/ios.yml`，提供 iOS18、iOS26 与 Duo 三条任务。选型、工具链清单和结果阅读方式见 [GitHub Mac 验证说明](docs/MAC_VERIFICATION.md)。
 
 独立检查命令：
 
