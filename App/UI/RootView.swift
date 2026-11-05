@@ -110,6 +110,18 @@ struct RootView: View {
         .alert("同步提示", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) {
             Button("知道了", role: .cancel) { store.message = nil }
         } message: { Text(store.message ?? "") }
+        .onChange(of: store.selectedTab) { _, next in
+            if next == .power { store.refreshPowerIfNeeded() }
+        }
+        .task {
+            // Check the clock while the app is visible, never promise a
+            // background scheduler. The store enforces a four-hour minimum.
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(15 * 60)) }
+                catch { break }
+                if scenePhase == .active { store.refreshPowerIfNeeded() }
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 Task {
