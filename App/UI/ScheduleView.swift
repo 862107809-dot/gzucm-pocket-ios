@@ -160,7 +160,7 @@ struct ScheduleView: View {
                         ContentUnavailableView("这一天没有课程安排", systemImage: "leaf", description: Text("以已同步的教务课表为准。"))
                     }
                     ForEach(courses) { course in
-                        Button { selectedCourse = course } label: { CourseRow(course: course) }.buttonStyle(.plain)
+                        Button { selectedCourse = course } label: { CourseRow(course: course) }.buttonStyle(PocketSpringButtonStyle())
                     }
                 }.padding(20).frame(maxWidth: 760).frame(maxWidth: .infinity)
             }.refreshable { await store.sync() }
@@ -206,7 +206,7 @@ struct ScheduleView: View {
                                     .foregroundStyle(.primary)
                                     .background(PocketTheme.courseColor(course.code + course.name).opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(PocketSpringButtonStyle())
                                 .offset(x: CGFloat(placement.lane) * laneWidth, y: CGFloat(max(0, course.startUnit - 1)) * 74 + 2)
                                 .accessibilityLabel("\(course.name)，\(course.resolvedStartTime)至\(course.resolvedEndTime)，\(course.room)")
                             }
