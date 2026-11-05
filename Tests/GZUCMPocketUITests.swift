@@ -50,6 +50,24 @@ final class GZUCMPocketUITests: XCTestCase {
         app.buttons["日课表"].tap()
     }
 
+    func testSundaySelectionSurvivesPageReentry() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--tab", "schedule", "-scheduleLayout", "0", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        defer { app.terminate() }
+        let sundays = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", " 周日"))
+        XCTAssertTrue(sundays.firstMatch.waitForExistence(timeout: 15))
+        let before = sundays.firstMatch.label
+        sundays.firstMatch.tap()
+        let today = app.tabBars.buttons["今日"].exists ? app.tabBars.buttons["今日"] : app.buttons["今日"].firstMatch
+        today.tap()
+        let schedule = app.tabBars.buttons["课表"].exists ? app.tabBars.buttons["课表"] : app.buttons["课表"].firstMatch
+        schedule.tap()
+        XCTAssertTrue(sundays.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(sundays.firstMatch.label, before, "Switching pages must not advance the selected Sunday")
+    }
+
     private func checkDemo(tab: String, marker: String, arguments: [String] = [], maximumMarkerHeight: CGFloat? = nil, file: StaticString = #filePath, line: UInt = #line) async {
         continueAfterFailure = false
         let app = XCUIApplication()

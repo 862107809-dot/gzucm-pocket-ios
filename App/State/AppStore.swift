@@ -459,9 +459,9 @@ final class AppStore {
     }
 
     private func resetCalendarSelection() {
-        let week = currentWeek
-        selectedWeek = min(max(week, 1), academic?.semester.totalWeeks ?? 1)
-        selectedDay = (SchoolDate.calendar.component(.weekday, from: .now) + 5) % 7 + 1
+        let date = Date.now
+        selectedWeek = academic?.semester.sundayFirstWeek(of: date) ?? 1
+        selectedDay = SchoolDate.weekday(date)
     }
     private func persist() {
         guard !isDemo else { return }

@@ -62,18 +62,10 @@ struct ScheduleView: View {
             }
         }
         .sheet(item: $selectedCourse) { CourseDetailView(course: $0) }
-        .onAppear {
-            // Sunday's visual week starts today; official records retain
-            // their original Monday-based teaching-week numbers.
-            if store.selectedDay == 7, store.selectedWeek == store.currentWeek,
-               let semester = store.academic?.semester {
-                store.selectedWeek = min(semester.totalWeeks + 1, store.selectedWeek + 1)
-            }
-        }
     }
 
     private func weekControls(_ semester: Semester) -> some View {
-        let current = min(semester.totalWeeks + 1, store.currentWeek + (SchoolDate.calendar.component(.weekday, from: .now) == 1 ? 1 : 0))
+        let current = semester.sundayFirstWeek(of: .now)
         return HStack {
             Button { stepWeek(-1, limit: semester.totalWeeks + 1) } label: {
                 Image(systemName: "chevron.left").frame(width: 44, height: 44)
@@ -238,8 +230,7 @@ struct ScheduleView: View {
     }
 
     private func displayDate(_ day: Int, semester: Semester) -> Date {
-        let monday = semester.date(week: store.selectedWeek, weekday: 1)
-        return SchoolDate.calendar.date(byAdding: .day, value: day == 7 ? -1 : day - 1, to: monday) ?? monday
+        semester.sundayFirstDate(week: store.selectedWeek, weekday: day)
     }
 
     private var monthAgenda: some View {

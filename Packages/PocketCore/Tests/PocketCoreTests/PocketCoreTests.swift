@@ -3,6 +3,31 @@ import XCTest
 @testable import PocketCore
 
 final class PocketCoreTests: XCTestCase {
+    func testSundayFirstSelectionKeepsEveryWeekdayAfterRefresh() throws {
+        let term = Semester(code: "test", name: "test", firstMonday: "2026-09-07", totalWeeks: 2)
+        // Includes the semester's initial Sunday and last Sunday.
+        for day in 0...14 {
+            let date = SchoolDate.addingDays(day, to: try XCTUnwrap(SchoolDate.parse("2026-09-06")))
+            let week = term.sundayFirstWeek(of: date)
+            let displayed = term.sundayFirstDate(week: week, weekday: SchoolDate.weekday(date))
+            XCTAssertEqual(SchoolDate.iso(displayed), SchoolDate.iso(date))
+            XCTAssertEqual(term.sundayFirstWeek(of: date), week, "Repeated restoration must not increment the week")
+        }
+        let finalSunday = try XCTUnwrap(SchoolDate.parse("2026-09-20"))
+        XCTAssertEqual(term.week(of: finalSunday), 2, "Official course weeks stay unchanged")
+        XCTAssertEqual(term.sundayFirstWeek(of: finalSunday), 3)
+    }
+
+    func testSundayFirstSelectionChangesAtShanghaiMidnight() throws {
+        let term = Semester(code: "test", name: "test", firstMonday: "2026-09-07", totalWeeks: 2)
+        let clock = ISO8601DateFormatter()
+        let saturday = try XCTUnwrap(clock.date(from: "2026-09-12T15:59:59Z"))
+        let sunday = try XCTUnwrap(clock.date(from: "2026-09-12T16:00:00Z"))
+        XCTAssertEqual(term.sundayFirstWeek(of: saturday), 1)
+        XCTAssertEqual(term.sundayFirstWeek(of: sunday), 2)
+        XCTAssertEqual(SchoolDate.iso(term.sundayFirstDate(week: 2, weekday: 7)), "2026-09-13")
+    }
+
     private let semester = Semester(code: "202601", name: "2026–2027 学年第一学期", firstMonday: "2026-09-07", totalWeeks: 19)
     private func data(_ string: String) -> Data { Data(string.utf8) }
     private func fixture(_ name: String) throws -> Data {

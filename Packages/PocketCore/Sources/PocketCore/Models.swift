@@ -70,6 +70,16 @@ public struct Semester: Codable, Hashable, Sendable {
     public func date(week: Int, weekday: Int) -> Date {
         SchoolDate.addingDays((week - 1) * 7 + weekday - 1, to: SchoolDate.parse(firstMonday) ?? Date(timeIntervalSince1970: 0))
     }
+    /// UI weeks run Sunday–Saturday; course records keep their official
+    /// Monday-based week. The final visual week retains the last Sunday.
+    public func sundayFirstWeek(of date: Date) -> Int {
+        let visualWeek = week(of: date) + (SchoolDate.weekday(date) == 7 ? 1 : 0)
+        return min(max(visualWeek, 1), max(1, totalWeeks + 1))
+    }
+    public func sundayFirstDate(week: Int, weekday: Int) -> Date {
+        let monday = date(week: week, weekday: 1)
+        return SchoolDate.addingDays(weekday == 7 ? -1 : weekday - 1, to: monday)
+    }
 }
 
 public enum ClassTimes {
