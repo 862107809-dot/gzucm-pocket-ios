@@ -6,21 +6,6 @@ import CoreFoundation
 /// Both portals share WebKit's app-private data store, including the school's SSO cookies.
 /// No script reads login forms, passwords or keyboard input.
 @MainActor
-struct SchoolLoginView: View {
-    @StateObject private var browser: SchoolBrowser
-    let onCancel: () -> Void
-
-    init(campus: Campus, onAuthenticated: @escaping ([HTTPCookie]) -> Void, onCancel: @escaping () -> Void) {
-        _browser = StateObject(wrappedValue: SchoolBrowser(campus: campus, onAuthenticated: onAuthenticated))
-        self.onCancel = onCancel
-    }
-
-    var body: some View {
-        BrowserChrome(browser: browser, title: "登录学校系统", closeTitle: "取消", onClose: onCancel)
-    }
-}
-
-@MainActor
 struct EcardPortalView: View {
     @StateObject private var browser: SchoolBrowser
     let onClose: () -> Void
@@ -103,14 +88,14 @@ private struct BrowserChrome: View {
 }
 
 @MainActor
-private struct SchoolWebView: UIViewRepresentable {
+struct SchoolWebView: UIViewRepresentable {
     let browser: SchoolBrowser
     func makeUIView(context: Context) -> WKWebView { browser.webView }
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 }
 
 @MainActor
-private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
+final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
     @Published var status = "正在连接学校页面…"
     @Published var error: String?
     @Published var isLoading = false
@@ -118,6 +103,8 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
     private(set) var webView: WKWebView!
 
     private let campus: Campus?
+    private let messagesMode: Bool
+    private var locatedMessages = false
     private let onAuthenticated: (([HTTPCookie]) -> Void)?
     private let onSnapshot: ((PowerSnapshot) -> Void)?
     private let automatic: Bool
@@ -131,7 +118,8 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
     private var dailyByRoom: [String: [String: PowerDaily]] = [:]
     private var completedRooms: Set<String> = []
 
-    init(campus: Campus, onAuthenticated: @escaping ([HTTPCookie]) -> Void) {
+    init(campus: Campus, loadImmediately: Bool = true, onAuthenticated: @escaping ([HTTPCookie]) -> Void) {
+        self.messagesMode = false
         self.campus = campus
         self.onAuthenticated = onAuthenticated
         self.onSnapshot = nil
@@ -142,12 +130,13 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
         let entry = campus == .graduate
             ? "https://yjsglxt.gzucm.edu.cn/gmis5/student/default/index"
             : "https://jw.gzucm.edu.cn/new/ssoLogin"
-        webView.load(URLRequest(url: URL(string: entry)!))
+        if loadImmediately { webView.load(URLRequest(url: URL(string: entry)!)) }
     }
 
     init(onSnapshot: @escaping (PowerSnapshot) -> Void,
          automatic: Bool = false, onNeedsLogin: (() -> Void)? = nil) {
         campus = nil
+        messagesMode = false
         onAuthenticated = nil
         self.onSnapshot = onSnapshot
         self.automatic = automatic
@@ -156,6 +145,16 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
         configure()
         webView.load(URLRequest(url: URL(string: "https://ecard.gzucm.edu.cn/user/powerfee/index")!))
     }
+
+    init(messagesCampus: Campus) {
+        campus = messagesCampus; messagesMode = true
+        onAuthenticated = nil; onSnapshot = nil; automatic = false; onNeedsLogin = nil
+        super.init(); configure()
+        status = "正在打开学校消息页面…"
+        let entry = messagesCampus == .undergraduate ? "https://jw.gzucm.edu.cn/new/welcome.page?ui=new" : "https://yjsglxt.gzucm.edu.cn/gmis5/student/default/index"
+        webView.load(URLRequest(url: URL(string: entry)!))
+    }
+    func resume() { if stopped { stopped = false; webView.reload() } }
 
     private func configure() {
         let configuration = WKWebViewConfiguration()
@@ -189,6 +188,7 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
         stopped = false
         error = nil
         navigatedToPower = false
+        locatedMessages = false
         webView.reload()
     }
 
@@ -271,7 +271,9 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
             stop()
             return
         }
-        if let campus {
+        if messagesMode {
+            locateMessages(on: url)
+        } else if let campus {
             validateLogin(on: url, campus: campus)
         } else if url.host == "ecard.gzucm.edu.cn" {
             if url.path.hasPrefix("/user/powerfee/") {
@@ -285,6 +287,42 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
             }
         } else {
             status = "请完成学校统一身份认证，随后返回校园卡页面。"
+        }
+    }
+
+    private func locateMessages(on url: URL) {
+        guard let campus else { return }
+        let host = campus == .undergraduate ? "jw.gzucm.edu.cn" : "yjsglxt.gzucm.edu.cn"
+        if url.host == "authserver.gzucm.edu.cn" || url.path.lowercased().contains("login") {
+            status = "学校消息需要有效教务登录，请返回后先连接教务。"; return
+        }
+        guard url.host == host else { return }
+        guard !locatedMessages else { status = "正在显示学校官方消息页面。"; return }
+        locatedMessages = true
+        let script = """
+        // Only follow an actual, same-origin menu rendered by the school.
+        for (let attempt=0; attempt<20; attempt++) {
+          const docs=[document];
+          for (const frame of document.querySelectorAll('iframe')) {
+            try { if (frame.contentDocument && frame.contentWindow.location.origin===location.origin) docs.push(frame.contentDocument); } catch (_) {}
+          }
+          for (const doc of docs) {
+            for (const link of doc.querySelectorAll('a.menuItem')) {
+              const title=(link.textContent||'').trim();
+              if (!/消息|通知|公告|站内信/.test(title)) continue;
+              const target=new URL(link.getAttribute('href')||'',location.href);
+              if (target.protocol!=='https:' || target.origin!==location.origin || target.username || target.password || target.hash || !target.pathname.startsWith('/new/')) continue;
+              link.click(); return true;
+            }
+          }
+          await new Promise(resolve=>setTimeout(resolve,350));
+        }
+        return false;
+        """
+        webView.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { [weak self] result in
+            guard let self, !self.stopped else { return }
+            if case .success(let found) = result, found as? Bool == true { self.status = "已打开学校菜单中的消息入口。" }
+            else { self.status = "学校页面尚未提供可识别的消息入口；可直接在下方官方页面查看。" }
         }
     }
 
@@ -319,14 +357,17 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
                 const response = await fetch('/new/student/xsgrkb/getCalendarWeekDatas', {
                   method:'POST', credentials:'same-origin',
                   headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'},
-                  body:'xnxqdm=&zc=&d1=&d2='
+                  body:new URLSearchParams({xnxqdm:term,zc:'',d1:rangeStart,d2:rangeEnd}).toString()
                 });
                 if (!response.ok || new URL(response.url).hostname !== 'jw.gzucm.edu.cn') return false;
                 const result = await response.json();
                 return result && String(result.code) === '0' && Array.isArray(result.data);
                 """
             }
-            self.webView.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { [weak self] result in
+            let term = SchoolParser.semesterCode()
+            let year = Int(term.prefix(4)) ?? 2026
+            let probeArguments: [String: Any] = campus == .undergraduate ? ["term":term,"rangeStart":"\(year)-07-01 00:00:00","rangeEnd":"\(year+1)-08-31 00:00:00"] : [:]
+            self.webView.callAsyncJavaScript(script, arguments: probeArguments, in: nil, in: .page) { [weak self] result in
                 guard let self, !self.stopped else { return }
                 self.validatingLogin = false
                 guard self.webView.url?.host == host else { return }
@@ -436,5 +477,26 @@ enum WebsiteDataReset {
                 continuation.resume()
             }
         }
+    }
+}
+
+
+@MainActor
+struct SchoolMessagesPortalView: View {
+    @StateObject private var browser: SchoolBrowser
+    init(campus: Campus) { _browser = StateObject(wrappedValue: SchoolBrowser(messagesCampus: campus)) }
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Label(browser.displayHost, systemImage: "lock.shield").font(.caption.weight(.medium))
+                    Text(browser.error ?? browser.status).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Button { browser.reload() } label: { Image(systemName: "arrow.clockwise").frame(width: 44, height: 44) }.accessibilityLabel("刷新学校消息")
+            }.padding(.horizontal, 16).padding(.vertical, 8).background(.regularMaterial)
+            if browser.isLoading { ProgressView().progressViewStyle(.linear) }
+            SchoolWebView(browser: browser)
+        }.onAppear { browser.resume() }.onDisappear { browser.stop() }
     }
 }

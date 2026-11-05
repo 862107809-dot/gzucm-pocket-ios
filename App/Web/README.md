@@ -1,6 +1,8 @@
-# School browser integration
+# Native school sign-in and portals
 
-`SchoolLoginView(campus:onAuthenticated:onCancel:)` opens the official school HTTPS page. A non-empty cookie (`JSESSIONID` for undergraduates, `__LOGINCOOKIE__` for graduates), a finished academic page and a successful same-origin JSON probe are required before cookies are handed to the academic client. Cookies are read again after the probe in case the school rotates its session. Login forms and passwords are never inspected.
+`SchoolLoginView` now offers native undergraduate QR sign-in and an official school password WebKit page. The QR protocol is implemented in PocketCore/SchoolQRClient.swift, with a request-local ephemeral jar, five-minute challenge, pinned-host completion redirects and a successful protected timetable probe. The UI generates its QR image locally, pauses polling while backgrounded, supports user-driven sharing to the system sheet, and cancels when switched/closed. Cookie handoff freezes mode switching and dismissal until the verified school cookies finish replacing the prior JW/parent-domain JSESSIONID entries. No password handling is injected. Graduate sign-in remains the official password portal.
+
+`SchoolMessagesPortalView` opens the official authenticated school homepage and follows only an actual, same-origin rendered school message menu. No unverified message-list endpoint or unread count is invented. Its page remains visible when automatic menu discovery is unsupported.
 
 `EcardPortalView(onSnapshot:onClose:)` opens the visible school electricity page in the same app-private `WKWebsiteDataStore.default()`. It does not copy ecard cookies into URLSession. Bundle `App/Resources/EcardBridge.js` as `EcardBridge.js` in the main app bundle. Exclude `App/Web/Tests` and this README from source compilation.
 

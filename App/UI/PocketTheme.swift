@@ -162,6 +162,8 @@ struct PocketChoices: View {
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(PocketSpringButtonStyle())
+                            .accessibilityLabel(items[index])
+                            .accessibilityIdentifier("\(title)-\(index)")
                             .accessibilityAddTraits(selection == index ? .isSelected : [])
                         }
                     }.padding(.horizontal, 4)
@@ -180,7 +182,7 @@ struct PocketChoices: View {
                 .onChange(of: selection) { _, _ in preview = nil }
                 .onChange(of: dragging) { _, active in if !active { preview = nil } }
             }
-        }.frame(height: 48).accessibilityLabel(title)
+        }.frame(height: 48).accessibilityElement(children: .contain).accessibilityLabel(title)
         .onDisappear { preview = nil }
     }
 

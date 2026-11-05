@@ -58,3 +58,9 @@ Apple reference:https://developer.apple.com/documentation/swiftui/applying-liqui
 
 ### Sunday selection regression follow-up
 The visual-week conversion now lives in Semester.sundayFirstWeek/sundayFirstDate and AppStore.resetCalendarSelection. Removed onAppear week increments, so returning to a selected Sunday and refreshing on a Sunday use the same mapping. Authored two core tests covering every weekday, the semester's final Sunday and the Shanghai midnight boundary, plus a page re-entry UI regression. Local Swift syntax/project checks passed; execution is tracked in the later workflow evidence. On retry, the previously blocked c690e889 workflow successfully allocated all five Mac runners and began compilation; earlier failure records remain historical, not a permanent build blocker.
+
+
+## 原生扫码登录与消息/电费接入（2026-11-05）
+新增原生二维码状态机及11项URLProtocol模拟测试，学校密码页面不注入密码处理；登录探测使用合法学期和日期范围。新增App内学校消息页与主动电量读取。学校消息仅为真实官方网页入口，没有未经验证的消息JSON接口或未读数。
+此前446aa17的Release真机归档和Mac Catalyst编译通过，31个核心用例通过；四组UI各有月视图按钮定位失败，本轮给选择器补充显式子控件语义及稳定标识，并保留月视图回归测试。新增登录两模式UI检查在DEBUG preview中不请求学校网络。
+本轮Windows仅语法/工程检查和原18项电费桥接测试，真实学校扫码、密码认证、教务消息内容及一卡通授权仍需本人账号验证。后续云端结果另行记录，未执行不记为通过。

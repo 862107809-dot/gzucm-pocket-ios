@@ -8,6 +8,23 @@ final class GZUCMPocketUITests: XCTestCase {
         await checkDemo(tab: "today", marker: "today-header")
     }
 
+    func testNativeLoginOffersQRAndOfficialPasswordModes() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--login-preview", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        defer { app.terminate() }
+        let qr = app.buttons["教务登录方式-0"]
+        let password = app.buttons["教务登录方式-1"]
+        XCTAssertTrue(qr.waitForExistence(timeout: 15))
+        XCTAssertTrue(password.exists)
+        XCTAssertTrue(app.descendants(matching: .any)["school-qr-panel"].exists)
+        password.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["school-password-panel"].waitForExistence(timeout: 5))
+        qr.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["school-qr-panel"].waitForExistence(timeout: 5))
+    }
+
     func testScheduleAtDefaultTextSize() async {
         // Capture the everyday appearance separately from the accessibility stress case.
         // The week selector should leave useful space for the course list at default text size.
@@ -32,7 +49,7 @@ final class GZUCMPocketUITests: XCTestCase {
         app.launchArguments = ["--demo", "--tab", "schedule", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
         defer { app.terminate() }
-        let month = app.buttons["月课表"]
+        let month = app.buttons["课表视图-2"]
         XCTAssertTrue(month.waitForExistence(timeout: 15))
         month.tap()
         let calendar = app.descendants(matching: .any)["schedule-month-calendar"]

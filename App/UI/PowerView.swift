@@ -10,14 +10,18 @@ struct PowerView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 PocketPageIntro(title: "为宿舍，留一盏灯。", subtitle: "剩余电量、用电趋势与学校一卡通连接。")
-                if store.powerNeedsLogin {
+                if !store.isDemo && (store.powerNeedsLogin || !store.powerWasLinked) {
                     PocketCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Label("一卡通授权已失效", systemImage: "lock.trianglebadge.exclamationmark")
+                            Label(store.powerNeedsLogin ? "一卡通授权需要更新" : "尚未连接学校一卡通", systemImage: "lock.trianglebadge.exclamationmark")
                                 .font(.headline).foregroundStyle(.orange)
-                            Text("原有登录会话无法继续使用。请在学校网页中重新认证一次，之后可继续自动读取。")
-                                .font(.subheadline).foregroundStyle(.secondary)
-                            Button("重新登录一卡通", action: openPortal).buttonStyle(.borderedProminent)
+                            Text(store.powerNeedsLogin
+                                 ? "原会话可能已失效，或学校认证链接已变化。请在学校官方页面重新认证并确认宿舍绑定，已读数据会保留。"
+                                 : "尚未保存可复用的一卡通连接。请在学校官方页面完成认证与宿舍绑定后，读取真实电量。")
+                                .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            Button("立即读取电量", systemImage: "bolt.fill", action: readPower)
+                                .buttonStyle(.borderedProminent).frame(minHeight: 44)
+                                .disabled(store.automaticPowerProbe)
                         }
                     }
                 } else if store.automaticPowerProbe {
@@ -48,19 +52,16 @@ struct PowerView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("更新于 \(power.updatedAt.formatted(date: .abbreviated, time: .shortened))")
-                            if Date.now.timeIntervalSince(power.updatedAt) > 24 * 3600 {
-                                Label("数据已超过一天，请重新读取", systemImage: "clock.badge.exclamationmark").foregroundStyle(PocketTheme.ochre)
-                            }
-                        }.font(.caption).foregroundStyle(.secondary)
-                        Spacer()
-                        Button("自动刷新", systemImage: "arrow.clockwise") {
-                            if store.powerNeedsLogin || !store.powerWasLinked { openPortal() }
-                            else { store.refreshPowerIfNeeded(force: true) }
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 18) {
+                            updateStatus(power.updatedAt).fixedSize(horizontal: true, vertical: false)
+                            Spacer()
+                            readButton.fixedSize()
                         }
-                        .font(.subheadline)
+                        VStack(alignment: .leading, spacing: 12) {
+                            updateStatus(power.updatedAt)
+                            readButton
+                        }
                     }
                     SectionTitle(title: "用电趋势", subtitle: "最近 \(min(30, power.daily.count)) 条记录")
                     PocketCard {
@@ -129,17 +130,43 @@ struct PowerView: View {
                     ContentUnavailableView {
                         Label("宿舍用电，心中有数", systemImage: "bolt.circle")
                     } description: {
-                        Text("在学校一卡通网页完成登录与房间绑定后，读取剩余电量和用电明细。")
+                        Text("在学校一卡通官方页面完成认证和宿舍绑定后，直接读取真实剩余电量与学校提供的明细。")
                     } actions: {
-                        Button("连接一卡通", action: openPortal).buttonStyle(.borderedProminent)
+                        Button("立即读取电量", systemImage: "bolt.fill", action: readPower)
+                            .buttonStyle(.borderedProminent).frame(minHeight: 44)
+                            .disabled(store.automaticPowerProbe)
                     }.padding(.top, 40)
                 }
-                Label("首次在学校网页完成一卡通登录和宿舍绑定后，App 前台会尝试复用 WebKit Cookie，每 4 小时检查一次电量。会话失效时需重新进行学校认证；iOS 关闭或冻结 App 后不保证后台查询。", systemImage: "info.circle")
-                    .font(.caption).foregroundStyle(.secondary)
+                Label("教务扫码与一卡通可能需要分别完成学校授权。电量通过已认证的学校网页直接读取；手动读取不受自动更新开关控制。开启自动更新后，App 在前台且间隔满 4 小时时尝试检查。会话失效会保留旧读数，请重新在学校认证；关闭或冻结 App 后不保证后台查询。", systemImage: "info.circle")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }.padding(20).frame(maxWidth: 850).frame(maxWidth: .infinity)
         }
         .pageCanvas().navigationTitle("电费")
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("一卡通", systemImage: "safari", action: openPortal) } }
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("学校一卡通", systemImage: "safari", action: openPortal).disabled(store.automaticPowerProbe) } }
+        .onAppear {
+            if !store.isDemo && store.powerWasLinked { store.refreshPowerIfNeeded() }
+        }
+    }
+
+    private var readButton: some View {
+        Button(store.automaticPowerProbe ? "正在读取电量…" : "立即读取电量", systemImage: "arrow.clockwise", action: readPower)
+            .font(.subheadline).frame(minHeight: 44)
+            .disabled(store.automaticPowerProbe)
+    }
+
+    private func readPower() {
+        if store.isDemo || !store.powerWasLinked || store.powerNeedsLogin { openPortal() }
+        else { store.readPowerNow() }
+    }
+
+    private func updateStatus(_ date: Date) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("更新于 \(date.formatted(date: .abbreviated, time: .shortened))")
+            if Date.now.timeIntervalSince(date) > 24 * 3600 {
+                Label("这是上次读数，请重新读取电量", systemImage: "clock.badge.exclamationmark")
+                    .foregroundStyle(PocketTheme.ochre)
+            }
+        }.font(.caption).foregroundStyle(.secondary)
     }
 
     @ViewBuilder private func metrics(_ summary: PowerSummary) -> some View {

@@ -2,13 +2,14 @@ import SwiftUI
 import PocketCore
 
 enum PocketTab: String, CaseIterable, Identifiable {
-    case today, schedule, grades, power
+    case today, schedule, grades, messages, power
     var id: String { rawValue }
     var title: String {
         switch self {
         case .today: "今日"
         case .schedule: "课表"
         case .grades: "成绩"
+        case .messages: "消息"
         case .power: "电费"
         }
     }
@@ -17,6 +18,7 @@ enum PocketTab: String, CaseIterable, Identifiable {
         case .today: "sun.horizon"
         case .schedule: "calendar"
         case .grades: "chart.bar.xaxis"
+        case .messages: "bell"
         case .power: "bolt"
         }
     }
@@ -115,6 +117,11 @@ struct RootView: View {
         .alert("同步提示", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) {
             Button("知道了", role: .cancel) { store.message = nil }
         } message: { Text(store.message ?? "") }
+        .task {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--login-preview") { showLogin = true }
+            #endif
+        }
         .onChange(of: store.selectedTab) { _, next in
             if next == .power { store.refreshPowerIfNeeded() }
         }
@@ -182,6 +189,7 @@ struct RootView: View {
         case .today: TodayView()
         case .schedule: ScheduleView()
         case .grades: GradesView()
+        case .messages: MessagesView()
         case .power: PowerView()
         }
     }

@@ -332,6 +332,9 @@ final class AppStore {
         }
     }
 
+    /// An explicit user request works independently of the automatic-refresh preference.
+    func readPowerNow() { refreshPowerIfNeeded(force: true) }
+
     func cancelPowerProbe() {
         powerProbeTimeout?.cancel()
         powerProbeTimeout = nil
