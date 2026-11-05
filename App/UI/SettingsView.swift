@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("startTab") private var startTab = PocketTab.today.rawValue
     @AppStorage("courseAlerts") private var courseAlerts = false
     @AppStorage("powerAlerts") private var powerAlerts = false
+    @AppStorage("autoPowerSync") private var autoPowerSync = false
     @State private var photo: PhotosPickerItem?
     @State private var changingCampus = false
     let onLogin: () -> Void
@@ -51,6 +52,16 @@ struct SettingsView: View {
                     TextField(store.campus == .undergraduate ? "学期代码，例如 202601（留空自动）" : "研究生学期代码（留空自动）", text: $store.semesterOverride)
                         .keyboardType(.numberPad)
                     Text("手动学期代码在下次同步时生效。自动选择以学校返回的校历为准。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("一卡通自动同步") {
+                    Toggle("登录后自动读取宿舍电量", isOn: $autoPowerSync)
+                        .onChange(of: autoPowerSync) { _, _ in store.powerAutoSettingChanged() }
+                    if store.powerNeedsLogin {
+                        Label("学校登录会话已失效，请前往「电费」重新登录一卡通。", systemImage: "lock.shield")
+                            .foregroundStyle(.orange)
+                    }
+                    Text("首次在「电费」打开学校页面完成登录及宿舍绑定后，App 会复用自己的 WebKit Cookie，并在前台按需每 4 小时检查电量。必要时须重新扫码或在学校页面登录；iOS 不保证关闭 App 后继续执行。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("提醒") {
