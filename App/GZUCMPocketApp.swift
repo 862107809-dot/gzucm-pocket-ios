@@ -11,7 +11,7 @@ struct GZUCMPocketApp: App {
                 .environment(store)
                 .tint(PocketTheme.jade)
                 .modifier(VerificationAppearance())
-                .task { if !store.isDemo { await store.restoreSession() } }
+                .task { if !store.isDemo { await store.restoreSession(); store.refreshPowerIfNeeded() } }
         }
     }
 }
