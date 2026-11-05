@@ -71,7 +71,7 @@ struct PocketSpringButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(isEnabled && configuration.isPressed && !reduceMotion ? 0.962 : 1)
+            .scaleEffect(isEnabled && configuration.isPressed && !reduceMotion ? 1.05 : 1)
             .brightness(isEnabled && configuration.isPressed ? 0.025 : 0)
             .animation(reduceMotion ? nil : .spring(response: 0.29, dampingFraction: 0.66),
                        value: configuration.isPressed)
