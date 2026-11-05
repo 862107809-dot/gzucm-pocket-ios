@@ -62,11 +62,20 @@ struct ScheduleView: View {
             }
         }
         .sheet(item: $selectedCourse) { CourseDetailView(course: $0) }
+        .onAppear {
+            // Sunday's visual week starts today; official records retain
+            // their original Monday-based teaching-week numbers.
+            if store.selectedDay == 7, store.selectedWeek == store.currentWeek,
+               let semester = store.academic?.semester {
+                store.selectedWeek = min(semester.totalWeeks + 1, store.selectedWeek + 1)
+            }
+        }
     }
 
     private func weekControls(_ semester: Semester) -> some View {
-        HStack {
-            Button { stepWeek(-1, limit: semester.totalWeeks) } label: {
+        let current = min(semester.totalWeeks + 1, store.currentWeek + (SchoolDate.calendar.component(.weekday, from: .now) == 1 ? 1 : 0))
+        return HStack {
+            Button { stepWeek(-1, limit: semester.totalWeeks + 1) } label: {
                 Image(systemName: "chevron.left").frame(width: 44, height: 44)
             }
             .opacity(store.selectedWeek <= 1 ? 0.55 : 1)
@@ -74,12 +83,12 @@ struct ScheduleView: View {
             .accessibilityHint(store.selectedWeek <= 1 ? "已到第一周，轻触可查看边缘提示" : "")
             Spacer(minLength: 4)
             Menu {
-                ForEach(1...max(1, semester.totalWeeks), id: \.self) { week in
-                    Button("第 \(week) 周") { store.selectedWeek = week }
+                ForEach(1...max(1, semester.totalWeeks + 1), id: \.self) { week in
+                    Button(week > semester.totalWeeks ? "学期末周" : "第 \(week) 周") { store.selectedWeek = week }
                 }
             } label: {
                 VStack(spacing: 4) {
-                    Text("第 \(store.selectedWeek) 周").font(.headline)
+                    Text(store.selectedWeek > semester.totalWeeks ? "学期末周" : "第 \(store.selectedWeek) 周").font(.headline)
                     let start = displayDate(7, semester: semester)
                     let end = displayDate(6, semester: semester)
                     Text("\(SchoolDate.display(start, template: "MMMd")) – \(SchoolDate.display(end, template: "MMMd"))")
@@ -88,14 +97,14 @@ struct ScheduleView: View {
             }
             .accessibilityIdentifier("schedule-week-control")
             Spacer(minLength: 4)
-            Button { stepWeek(1, limit: semester.totalWeeks) } label: {
+            Button { stepWeek(1, limit: semester.totalWeeks + 1) } label: {
                 Image(systemName: "chevron.right").frame(width: 44, height: 44)
             }
-            .opacity(store.selectedWeek >= semester.totalWeeks ? 0.55 : 1)
+            .opacity(store.selectedWeek >= semester.totalWeeks + 1 ? 0.55 : 1)
             .accessibilityLabel("下一周")
-            .accessibilityHint(store.selectedWeek >= semester.totalWeeks ? "已到最后一周，轻触可查看边缘提示" : "")
-            if store.currentWeek >= 1 && store.currentWeek <= semester.totalWeeks && store.selectedWeek != store.currentWeek {
-                Button("本周") { store.selectedWeek = store.currentWeek }.font(.caption.bold()).padding(.trailing, 12)
+            .accessibilityHint(store.selectedWeek >= semester.totalWeeks + 1 ? "已到最后一周，轻触可查看边缘提示" : "")
+            if store.currentWeek >= 1 && store.currentWeek <= semester.totalWeeks && store.selectedWeek != current {
+                Button("本周") { store.selectedWeek = current }.font(.caption.bold()).padding(.trailing, 12)
             }
         }
         .pocketGlass()

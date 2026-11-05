@@ -4,12 +4,14 @@ import PocketCore
 @main
 struct GZUCMPocketApp: App {
     @State private var store = AppStore()
+    @AppStorage("appearance") private var appearance = "system"
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(store)
                 .tint(PocketTheme.jade)
+                .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
                 .modifier(VerificationAppearance())
                 .task { if !store.isDemo { await store.restoreSession(); store.refreshPowerIfNeeded() } }
         }

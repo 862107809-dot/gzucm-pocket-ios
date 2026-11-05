@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @AppStorage("startTab") private var startTab = PocketTab.today.rawValue
+    @AppStorage("appearance") private var appearance = "system"
     @AppStorage("courseAlerts") private var courseAlerts = false
     @AppStorage("powerAlerts") private var powerAlerts = false
     @AppStorage("autoPowerSync") private var autoPowerSync = false
@@ -47,6 +48,11 @@ struct SettingsView: View {
                     Text("切换学段会退出当前账户并清除缓存。密码只在学校网页输入；课表和成绩保存在本机。")
                 }
                 Section("使用偏好") {
+                    Picker("外观", selection: $appearance) {
+                        Text("跟随系统").tag("system")
+                        Text("浅色").tag("light")
+                        Text("深色").tag("dark")
+                    }
                     Picker("默认启动页", selection: $startTab) {
                         ForEach(PocketTab.allCases) { Text($0.title).tag($0.rawValue) }
                     }

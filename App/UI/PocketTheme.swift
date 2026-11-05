@@ -129,6 +129,7 @@ struct PocketChoices: View {
     let items: [String]
     @Binding var selection: Int
     @State private var preview: Int?
+    @GestureState private var dragging = false
     @Namespace private var glassNamespace
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -160,13 +161,14 @@ struct PocketChoices: View {
                                     .foregroundStyle(value == index ? PocketTheme.jade : .secondary)
                                     .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PocketSpringButtonStyle())
                             .accessibilityAddTraits(selection == index ? .isSelected : [])
                         }
                     }.padding(.horizontal, 4)
                 }
                 .background(.quaternary.opacity(0.35), in: Capsule())
                 .simultaneousGesture(DragGesture(minimumDistance: 8)
+                    .updating($dragging) { _, state, _ in state = true }
                     .onChanged { drag in
                         guard abs(drag.translation.width) > abs(drag.translation.height) else { return }
                         preview = index(at: drag.location.x, width: geometry.size.width)
@@ -176,6 +178,7 @@ struct PocketChoices: View {
                         preview = nil
                     })
                 .onChange(of: selection) { _, _ in preview = nil }
+                .onChange(of: dragging) { _, active in if !active { preview = nil } }
             }
         }.frame(height: 48).accessibilityLabel(title)
         .onDisappear { preview = nil }

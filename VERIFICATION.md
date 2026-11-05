@@ -49,3 +49,9 @@
 5. Release 归档、真机签名安装、TestFlight 与 App Store 分发。CI 使用 Debug Simulator、`CODE_SIGNING_ALLOWED=NO`，没有签名 IPA。
 
 上述范围以外的兼容性不由本记录保证。后续设备检查见 [ADAPTATION.md](docs/ADAPTATION.md)，Mac 环境选择与复现命令见 [MAC_VERIFICATION.md](docs/MAC_VERIFICATION.md)。
+
+## 2026-11-05 native design update
+New native Liquid Glass controls use Apple glassEffect / interactive / GlassEffectContainer / glassEffectID behind iOS26 and Mac Catalyst26 availability checks. iOS18 fallback uses system Material; reduce-transparency uses solid surfaces and reduce-motion disables magnification/spring. Native system TabView is retained. Added compact Sunday-first month grid and full selected-day course list; semester-end Sunday remains navigable. Settings and course sheets share native glass, with explicit light/dark/system preference. Mac Catalyst target and iPad CI lane added.
+Local validation:18 JS bridge tests,34 Python tests,20 Swift syntax parses, independent OpenStep project structure passed. UI XCTest now includes month navigation in addition to five existing demo cases. These new native UI tests have NOT executed.
+Cloud run42037531881 (simulators/Mac Catalyst) and42037531741 (device archive), source70a4286: all jobs failed before a runner was assigned, steps empty, no compiler logs and no artifacts. This is not evidence of a successful build or a diagnosed compiler failure. Connector cannot read annotation endpoints; browser navigation also timed out. No exact infrastructure/account reason has been confirmed. Windows has no Apple SDK/Xcode. Re-run after runner allocation is restored; do not present earlier screenshots or IPA as evidence for this UI revision.
+Apple reference:https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views
