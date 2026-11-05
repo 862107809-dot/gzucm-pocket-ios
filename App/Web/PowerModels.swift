@@ -9,6 +9,17 @@ struct PowerDaily: Codable, Hashable, Identifiable, Sendable {
 }
 
 /// Only display data is cached. The page's tokens and internal room identifiers stay in WebKit.
+/// One confirmed balance per school-local calendar day.
+ // This is a balance history, not energy usage; top-ups can increase balances.
+struct PowerBalanceRecord: Codable, Hashable, Identifiable, Sendable {
+    let date: String
+    let balance: Double
+    let unit: String
+    let roomLabel: String
+    let recordedAt: Date
+    var id: String { date }
+}
+
 struct PowerSnapshot: Codable, Hashable, Sendable {
     let balance: Double
     let unit: String
