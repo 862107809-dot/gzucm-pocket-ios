@@ -75,6 +75,10 @@ struct RootView: View {
                 }
             }
         }
+        // Preserve native App Store-like Liquid Glass tab bars on iOS 26.
+        // The foreground content uses full-button press springs; the native
+        // tab bar retains Apple's built-in hit areas and accessibility.
+        .sensoryFeedback(.selection, trigger: store.selectedTab)
         .sheet(isPresented: $showSettings, onDismiss: {
             if pendingLogin {
                 pendingLogin = false
@@ -136,6 +140,7 @@ struct RootView: View {
 
     private func navigationPage(_ tab: PocketTab) -> some View {
         page(tab)
+            .buttonStyle(PocketSpringButtonStyle())
             .safeAreaInset(edge: .top, spacing: 0) { demoBanner }
             .toolbar { actions }
     }
