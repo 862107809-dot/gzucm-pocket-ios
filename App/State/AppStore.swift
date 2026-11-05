@@ -3,6 +3,7 @@ import Observation
 import WebKit
 import UIKit
 import ImageIO
+import Security
 import PocketCore
 
 @MainActor @Observable
@@ -17,6 +18,12 @@ final class AppStore {
     private(set) var automaticPowerRunID = 0
     var powerAutoSyncEnabled: Bool { UserDefaults.standard.bool(forKey: "autoPowerSync") }
     var powerWasLinked: Bool { UserDefaults.standard.bool(forKey: "powerLinkedOnce") }
+    var powerBridgeSite: String = UserDefaults.standard.string(forKey: "powerBridgeSite") ?? "" {
+        didSet { UserDefaults.standard.set(powerBridgeSite, forKey: "powerBridgeSite") }
+    }
+    private(set) var powerBridgeStatus = "尚未配对"
+    private(set) var powerBridgePaired = false
+    private(set) var powerBridgeBusy = false
     private(set) var hasSession = false
     private(set) var syncing = false
     private(set) var isDemo = false
@@ -43,6 +50,9 @@ final class AppStore {
     @ObservationIgnored private var powerAlertTask: Task<Void, Never>?
     @ObservationIgnored private var lastAutoPowerAttempt: Date?
     @ObservationIgnored private var powerProbeTimeout: Task<Void, Never>?
+    @ObservationIgnored private var powerBridgeToken: String? = PowerBridgeSecret.load()
+    @ObservationIgnored private var powerBridgePushTask: Task<Void, Never>?
+    @ObservationIgnored private var powerBridgeLastAttempt: Date?
 
     init() {
         campus = Campus(rawValue: UserDefaults.standard.string(forKey: "campus") ?? "") ?? .undergraduate
@@ -53,6 +63,8 @@ final class AppStore {
             power = cache.power
             powerBalanceHistory = cache.powerHistory ?? []
         }
+        powerBridgePaired = powerBridgeToken != nil && PowerBridgeNetwork.site(powerBridgeSite) != nil
+        powerBridgeStatus = powerBridgePaired ? "已与网站配对，等待下次电量同步" : "尚未配对"
         wallpaperData = try? Data(contentsOf: LocalCache.directory.appending(path: "wallpaper.jpg"))
         resetCalendarSelection()
         #if DEBUG
@@ -200,6 +212,101 @@ final class AppStore {
         if automaticPowerProbe && snapshot.isComplete { cancelPowerProbe() }
         persist()
         refreshPowerAlert()
+        enqueuePowerBridgePush()
+    }
+
+    /// Connect by copying a one-time code from this user's Web page.
+    /// The official school session remains in WKWebView; only sanitized
+    /// display fields are sent to the explicitly entered HTTPS site.
+    func pairPowerBridge(code: String) async {
+        guard !powerBridgeBusy else { return }
+        guard let base = PowerBridgeNetwork.site(powerBridgeSite) else {
+            powerBridgeStatus = "请输入广中医口袋网站的完整 HTTPS 地址（不包含路径）"
+            return
+        }
+        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard trimmed.range(of: "^[A-Z0-9_-]{12}$", options: .regularExpression) != nil else {
+            powerBridgeStatus = "请填写网站生成的 12 位一次性配对码"
+            return
+        }
+        powerBridgeBusy = true
+        defer { powerBridgeBusy = false }
+        do {
+            // Verify the server identifies itself as the intended Web app.
+            let info = try await PowerBridgeNetwork.get(base: base, path: "/api/health")
+            guard info["app"] as? String == "广中医口袋 Web" else {
+                throw PowerBridgeNetwork.Failure.invalidServer
+            }
+            let result = try await PowerBridgeNetwork.post(
+                base: base, path: "/api/power/bridge/claim", body: ["code": trimmed], token: nil
+            )
+            guard let token = result["token"] as? String,
+                  token.range(of: "^[-_A-Za-z0-9]{40,100}$", options: .regularExpression) != nil,
+                  PowerBridgeSecret.save(token) else {
+                throw PowerBridgeNetwork.Failure.invalidResponse
+            }
+            powerBridgeToken = token
+            powerBridgePaired = true
+            powerBridgeStatus = "网站配对成功。将于下次读取真实电量后同步"
+            enqueuePowerBridgePush()
+        } catch {
+            powerBridgeStatus = "配对失败：\(error.localizedDescription)"
+        }
+    }
+
+    func forgetPowerBridge() {
+        powerBridgePushTask?.cancel()
+        powerBridgePushTask = nil
+        powerBridgeToken = nil
+        powerBridgePaired = false
+        powerBridgeStatus = "已清除本机配对"
+        PowerBridgeSecret.clear()
+    }
+
+    private func enqueuePowerBridgePush() {
+        guard !isDemo, powerBridgePaired, powerBridgeToken != nil else { return }
+        powerBridgePushTask?.cancel()
+        powerBridgePushTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(2)) } catch { return }
+            guard let self, !Task.isCancelled, let snapshot = self.power else { return }
+            await self.sendPowerBridge(snapshot)
+        }
+    }
+
+    private func sendPowerBridge(_ snapshot: PowerSnapshot) async {
+        guard !isDemo, !powerBridgeBusy, powerBridgePaired,
+              let token = powerBridgeToken,
+              let base = PowerBridgeNetwork.site(powerBridgeSite),
+              ["度", "kWh", "千瓦时", "度电"].contains(snapshot.unit),
+              snapshot.balance.isFinite, snapshot.balance >= 0 else { return }
+        if let last = powerBridgeLastAttempt, Date.now.timeIntervalSince(last) < 18 { return }
+        powerBridgeLastAttempt = .now
+        powerBridgeBusy = true
+        defer { powerBridgeBusy = false }
+        do {
+            let days: [[String: Any]] = snapshot.daily.suffix(90).map { row in
+                ["date": row.date, "usage": row.usage,
+                 "remain": row.remain, "total": row.total]
+            }
+            let payload: [String: Any] = [
+                "power": ["balance": snapshot.balance, "unit": snapshot.unit,
+                          "roomLabel": snapshot.roomLabel,
+                          "updatedAt": ISO8601DateFormatter().string(from: snapshot.updatedAt)],
+                "powerDaily": days,
+                "historyStatus": snapshot.isComplete ? "complete" : "partial"
+            ]
+            _ = try await PowerBridgeNetwork.post(
+                base: base, path: "/api/power/bridge/push", body: payload, token: token
+            )
+            powerBridgeStatus = "已将本次电量和明细同步至网站"
+        } catch {
+            if case PowerBridgeNetwork.Failure.unauthorized = error {
+                forgetPowerBridge()
+                powerBridgeStatus = "网站授权已到期，请重新输入配对码"
+            } else {
+                powerBridgeStatus = "网站暂不可达：本机记录仍安全保留，可下次重试"
+            }
+        }
     }
 
     /// Loads the official electricity page using the app's EXISTING WebKit cookies.
@@ -268,6 +375,10 @@ final class AppStore {
         generation += 1
         remindersTask?.cancel()
         powerAlertTask?.cancel()
+        powerBridgePushTask?.cancel()
+        forgetPowerBridge()
+        UserDefaults.standard.removeObject(forKey: "powerBridgeSite")
+        powerBridgeSite = ""
         LocalNotifications.clearAll()
         UserDefaults.standard.removeObject(forKey: "lastPowerAlertDay")
         syncing = false
@@ -390,5 +501,110 @@ private enum LocalCache {
 private extension WKHTTPCookieStore {
     func allCookies() async -> [HTTPCookie] {
         await withCheckedContinuation { continuation in getAllCookies { continuation.resume(returning: $0) } }
+    }
+}
+
+private enum PowerBridgeSecret {
+    private static let service = "GZUCMPocket.power-display-only"
+    private static let account = "paired-web-push-token"
+    static func load() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+    @discardableResult static func save(_ token: String) -> Bool {
+        clear()
+        guard let data = token.data(using: .utf8) else { return false }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecValueData as String: data
+        ]
+        return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
+    }
+    static func clear() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+}
+
+private enum PowerBridgeNetwork {
+    enum Failure: LocalizedError {
+        case invalidServer, invalidResponse, unauthorized, rejected(String)
+        var errorDescription: String? {
+            switch self {
+            case .invalidServer: return "此地址不是广中医口袋 Web 服务"
+            case .invalidResponse: return "设备配对服务器响应无效"
+            case .unauthorized: return "配对授权失效"
+            case .rejected(let message): return message
+            }
+        }
+    }
+    static func site(_ input: String) -> URL? {
+        guard let u = URLComponents(string: input.trimmingCharacters(in: .whitespacesAndNewlines)),
+              u.scheme?.lowercased() == "https", let host = u.host,
+              host.contains("."), u.user == nil, u.password == nil, u.port == nil,
+              u.query == nil, u.fragment == nil,
+              u.path.isEmpty || u.path == "/" else { return nil }
+        return URL(string: "https://" + host.lowercased())
+    }
+    private final class NoRedirect: NSObject, URLSessionTaskDelegate {
+        func urlSession(_ session: URLSession, task: URLSessionTask,
+                        willPerformHTTPRedirection response: HTTPURLResponse,
+                        newRequest request: URLRequest,
+                        completionHandler: @escaping (URLRequest?) -> Void) {
+            completionHandler(nil)
+        }
+    }
+    static func get(base: URL, path: String) async throws -> [String: Any] {
+        try await request(base: base, path: path, body: nil, token: nil)
+    }
+    static func post(base: URL, path: String, body: [String: Any], token: String?) async throws -> [String: Any] {
+        try await request(base: base, path: path, body: body, token: token)
+    }
+    private static func request(base: URL, path: String,
+                                body: [String: Any]?, token: String?) async throws -> [String: Any] {
+        let url = base.appending(path: path)
+        var request = URLRequest(url: url)
+        request.httpMethod = body == nil ? "GET" : "POST"
+        request.timeoutInterval = 18
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let body {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        if let token { request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization") }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 18
+        configuration.httpShouldSetCookies = false
+        let session = URLSession(configuration: configuration, delegate: NoRedirect(), delegateQueue: nil)
+        defer { session.invalidateAndCancel() }
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.url?.host == base.host else {
+            throw Failure.invalidResponse
+        }
+        if http.statusCode == 401 { throw Failure.unauthorized }
+        guard data.count <= 35000,
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw Failure.invalidResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw Failure.rejected(String((dict["error"] as? String ?? "同步失败").prefix(150)))
+        }
+        return dict
     }
 }
