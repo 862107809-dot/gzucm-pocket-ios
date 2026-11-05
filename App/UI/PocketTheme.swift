@@ -63,6 +63,21 @@ struct Metric: View {
     }
 }
 
+/// Applies the spring to the complete button label and background, not
+/// just text or an SF Symbol. Native TabView retains Apple's system tab bar.
+struct PocketSpringButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(isEnabled && configuration.isPressed && !reduceMotion ? 0.962 : 1)
+            .brightness(isEnabled && configuration.isPressed ? 0.025 : 0)
+            .animation(reduceMotion ? nil : .spring(response: 0.29, dampingFraction: 0.66),
+                       value: configuration.isPressed)
+    }
+}
+
 private struct PocketGlass: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     func body(content: Content) -> some View {
