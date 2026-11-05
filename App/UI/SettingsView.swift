@@ -11,6 +11,7 @@ struct SettingsView: View {
     @AppStorage("autoPowerSync") private var autoPowerSync = false
     @State private var photo: PhotosPickerItem?
     @State private var changingCampus = false
+    @State private var powerPairCode = ""
     let onLogin: () -> Void
 
     var body: some View {
@@ -53,6 +54,34 @@ struct SettingsView: View {
                         .keyboardType(.numberPad)
                     Text("手动学期代码在下次同步时生效。自动选择以学校返回的校历为准。")
                         .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("网站配对与电量同步") {
+                    TextField("网站 HTTPS 地址（例如你正在使用的部署地址）", text: $store.powerBridgeSite)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    TextField("网站生成的 12 位一次性配对码", text: $powerPairCode)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    Button {
+                        Task { await store.pairPowerBridge(code: powerPairCode) }
+                    } label: {
+                        HStack {
+                            Label("连接网页版电量记录", systemImage: "link")
+                            Spacer()
+                            if store.powerBridgeBusy { ProgressView() }
+                        }
+                    }
+                    .disabled(store.powerBridgeBusy || powerPairCode.isEmpty)
+                    Text(store.powerBridgeStatus)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if store.powerBridgePaired {
+                        Button("解除网页版配对", role: .destructive) { store.forgetPowerBridge() }
+                    }
+                    Text("先在网页版的「电费 → 生成设备配对码」取得一次性代码，再填入本页。网站地址必须是你信任的 HTTPS 网站；只会推送已读取的电量和每日用电量，不传输密码、Cookie 或登录 Token。配对令牌仅存储在本机钥匙串中。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 Section("一卡通自动同步") {
                     Toggle("登录后自动读取宿舍电量", isOn: $autoPowerSync)
