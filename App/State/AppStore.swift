@@ -16,6 +16,7 @@ final class AppStore {
     private(set) var automaticPowerProbe = false
     private(set) var automaticPowerRunID = 0
     var powerAutoSyncEnabled: Bool { UserDefaults.standard.bool(forKey: "autoPowerSync") }
+    var powerWasLinked: Bool { UserDefaults.standard.bool(forKey: "powerLinkedOnce") }
     private(set) var hasSession = false
     private(set) var syncing = false
     private(set) var isDemo = false
@@ -204,8 +205,8 @@ final class AppStore {
     /// Loads the official electricity page using the app's EXISTING WebKit cookies.
     /// It cannot silently complete new school SSO/MFA challenges.
     func refreshPowerIfNeeded(force: Bool = false) {
-        guard !isDemo, !transitioning, powerAutoSyncEnabled,
-              UserDefaults.standard.bool(forKey: "powerLinkedOnce"), !automaticPowerProbe else { return }
+        guard !isDemo, !transitioning, (force || powerAutoSyncEnabled),
+              powerWasLinked, !automaticPowerProbe else { return }
         if !force {
             if let lastAutoPowerAttempt, Date.now.timeIntervalSince(lastAutoPowerAttempt) < 4 * 3600 { return }
             if let power, Date.now.timeIntervalSince(power.updatedAt) < 4 * 3600 { return }
