@@ -50,7 +50,7 @@ final class AppStore {
     @ObservationIgnored private var powerAlertTask: Task<Void, Never>?
     @ObservationIgnored private var lastAutoPowerAttempt: Date?
     @ObservationIgnored private var powerProbeTimeout: Task<Void, Never>?
-    @ObservationIgnored private var powerBridgeToken: String? = PowerBridgeSecret.load()
+    @ObservationIgnored private var powerBridgeBinding: PowerBridgeBinding? = PowerBridgeSecret.load()
     @ObservationIgnored private var powerBridgePushTask: Task<Void, Never>?
     @ObservationIgnored private var powerBridgeLastAttempt: Date?
 
@@ -63,7 +63,7 @@ final class AppStore {
             power = cache.power
             powerBalanceHistory = cache.powerHistory ?? []
         }
-        powerBridgePaired = powerBridgeToken != nil && PowerBridgeNetwork.site(powerBridgeSite) != nil
+        powerBridgePaired = powerBridgeBinding?.site == PowerBridgeNetwork.site(powerBridgeSite)?.absoluteString
         powerBridgeStatus = powerBridgePaired ? "已与网站配对，等待下次电量同步" : "尚未配对"
         wallpaperData = try? Data(contentsOf: LocalCache.directory.appending(path: "wallpaper.jpg"))
         resetCalendarSelection()
@@ -242,10 +242,10 @@ final class AppStore {
             )
             guard let token = result["token"] as? String,
                   token.range(of: "^[-_A-Za-z0-9]{40,100}$", options: .regularExpression) != nil,
-                  PowerBridgeSecret.save(token) else {
+                  PowerBridgeSecret.save(PowerBridgeBinding(token: token, site: base.absoluteString)) else {
                 throw PowerBridgeNetwork.Failure.invalidResponse
             }
-            powerBridgeToken = token
+            powerBridgeBinding = PowerBridgeBinding(token: token, site: base.absoluteString)
             powerBridgePaired = true
             powerBridgeStatus = "网站配对成功。将于下次读取真实电量后同步"
             enqueuePowerBridgePush()
@@ -257,14 +257,14 @@ final class AppStore {
     func forgetPowerBridge() {
         powerBridgePushTask?.cancel()
         powerBridgePushTask = nil
-        powerBridgeToken = nil
+        powerBridgeBinding = nil
         powerBridgePaired = false
         powerBridgeStatus = "已清除本机配对"
         PowerBridgeSecret.clear()
     }
 
     private func enqueuePowerBridgePush() {
-        guard !isDemo, powerBridgePaired, powerBridgeToken != nil else { return }
+        guard !isDemo, powerBridgePaired, powerBridgeBinding != nil else { return }
         powerBridgePushTask?.cancel()
         powerBridgePushTask = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(2)) } catch { return }
@@ -275,8 +275,9 @@ final class AppStore {
 
     private func sendPowerBridge(_ snapshot: PowerSnapshot) async {
         guard !isDemo, !powerBridgeBusy, powerBridgePaired,
-              let token = powerBridgeToken,
+              let binding = powerBridgeBinding,
               let base = PowerBridgeNetwork.site(powerBridgeSite),
+              binding.site == base.absoluteString,
               ["度", "kWh", "千瓦时", "度电"].contains(snapshot.unit),
               snapshot.balance.isFinite, snapshot.balance >= 0 else { return }
         if let last = powerBridgeLastAttempt, Date.now.timeIntervalSince(last) < 18 { return }
@@ -296,7 +297,7 @@ final class AppStore {
                 "historyStatus": snapshot.isComplete ? "complete" : "partial"
             ]
             _ = try await PowerBridgeNetwork.post(
-                base: base, path: "/api/power/bridge/push", body: payload, token: token
+                base: base, path: "/api/power/bridge/push", body: payload, token: binding.token
             )
             powerBridgeStatus = "已将本次电量和明细同步至网站"
         } catch {
@@ -504,10 +505,15 @@ private extension WKHTTPCookieStore {
     }
 }
 
+private struct PowerBridgeBinding: Codable {
+    let token: String
+    let site: String
+}
+
 private enum PowerBridgeSecret {
     private static let service = "GZUCMPocket.power-display-only"
     private static let account = "paired-web-push-token"
-    static func load() -> String? {
+    static func load() -> PowerBridgeBinding? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -518,11 +524,11 @@ private enum PowerBridgeSecret {
         var item: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
               let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        return try? JSONDecoder().decode(PowerBridgeBinding.self, from: data)
     }
-    @discardableResult static func save(_ token: String) -> Bool {
+    @discardableResult static func save(_ binding: PowerBridgeBinding) -> Bool {
         clear()
-        guard let data = token.data(using: .utf8) else { return false }
+        guard let data = try? JSONEncoder().encode(binding) else { return false }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -541,7 +547,6 @@ private enum PowerBridgeSecret {
         SecItemDelete(query as CFDictionary)
     }
 }
-
 private enum PowerBridgeNetwork {
     enum Failure: LocalizedError {
         case invalidServer, invalidResponse, unauthorized, rejected(String)
