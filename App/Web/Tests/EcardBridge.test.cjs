@@ -239,7 +239,9 @@ test('bounded truncated pagination never claims completeness', async () => {
     } });
   } });
   await settle(); await settle();
-  assert.equal(f.requests.length, 4);
+  // Exactly four detail pages, plus at most one read-only balance probe.
+  assert.equal(f.requests.filter(x => x.url.endsWith('/getDailyDetails')).length, 4);
+  assert.ok(f.requests.filter(x => x.url.endsWith('/getBalance')).length <= 1);
   assert.ok(!f.messages.some(m => m.kind === 'complete'));
 });
 
