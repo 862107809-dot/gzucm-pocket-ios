@@ -95,13 +95,30 @@ struct RootView: View {
         .sheet(isPresented: $showPower) {
             EcardPortalView(onSnapshot: { snapshot in store.acceptPower(snapshot) }, onClose: { showPower = false })
         }
+        .background(alignment: .bottomTrailing) {
+            // The official school's authenticated WebKit data store is reused
+            // in the foreground. Only after a prior successful visible login.
+            if store.automaticPowerProbe {
+                EcardAutoSyncView(onSnapshot: { snapshot in store.acceptPower(snapshot) },
+                                  onNeedsLogin: { store.powerAutoLoginRequired() })
+                    .id(store.automaticPowerRunID)
+                    .accessibilityHidden(true)
+            }
+        }
         .environment(\.openSchoolLogin, { showLogin = true })
         .environment(\.openPowerPortal, { showPower = true })
         .alert("同步提示", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) {
             Button("知道了", role: .cancel) { store.message = nil }
         } message: { Text(store.message ?? "") }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await store.refreshIfNeeded() } }
+            if phase == .active {
+                Task {
+                    await store.refreshIfNeeded()
+                    store.refreshPowerIfNeeded()
+                }
+            } else if phase == .background {
+                store.cancelPowerProbe()
+            }
         }
     }
 
