@@ -11,6 +11,11 @@ final class AppStore {
     private(set) var campus: Campus
     private(set) var academic: AcademicSnapshot?
     private(set) var power: PowerSnapshot?
+    private(set) var powerBalanceHistory: [PowerBalanceRecord] = []
+    private(set) var powerNeedsLogin = false
+    private(set) var automaticPowerProbe = false
+    private(set) var automaticPowerRunID = 0
+    var powerAutoSyncEnabled: Bool { UserDefaults.standard.bool(forKey: "autoPowerSync") }
     private(set) var hasSession = false
     private(set) var syncing = false
     private(set) var isDemo = false
@@ -35,6 +40,8 @@ final class AppStore {
     @ObservationIgnored private var lastAutomaticAttempt: Date?
     @ObservationIgnored private var remindersTask: Task<Void, Never>?
     @ObservationIgnored private var powerAlertTask: Task<Void, Never>?
+    @ObservationIgnored private var lastAutoPowerAttempt: Date?
+    @ObservationIgnored private var powerProbeTimeout: Task<Void, Never>?
 
     init() {
         campus = Campus(rawValue: UserDefaults.standard.string(forKey: "campus") ?? "") ?? .undergraduate
@@ -43,6 +50,7 @@ final class AppStore {
         if let cache = LocalCache.load(), cache.campus == campus {
             academic = cache.academic
             power = cache.power
+            powerBalanceHistory = cache.powerHistory ?? []
         }
         wallpaperData = try? Data(contentsOf: LocalCache.directory.appending(path: "wallpaper.jpg"))
         resetCalendarSelection()
@@ -117,6 +125,8 @@ final class AppStore {
         isDemo = false
         academic = nil
         power = nil
+        powerBalanceHistory = []
+        cancelPowerProbe()
         LocalCache.remove()
         await client.clearSession()
         guard generation == token else { return }
@@ -170,9 +180,67 @@ final class AppStore {
 
     func acceptPower(_ snapshot: PowerSnapshot) {
         if isDemo { isDemo = false; academic = nil; hasSession = false }
+        guard snapshot.balance.isFinite, !snapshot.roomLabel.isEmpty else { return }
         power = snapshot
+        let date = SchoolDate.iso(snapshot.updatedAt)
+        let record = PowerBalanceRecord(date: date, balance: snapshot.balance, unit: snapshot.unit,
+                                        roomLabel: snapshot.roomLabel, recordedAt: snapshot.updatedAt)
+        // A room change invalidates the previous room's balance history.
+        var records = powerBalanceHistory.filter {
+            $0.roomLabel == snapshot.roomLabel && $0.unit == snapshot.unit && $0.date != date
+        }
+        records.append(record)
+        powerBalanceHistory = Array(records.sorted { $0.recordedAt < $1.recordedAt }.suffix(90))
+        UserDefaults.standard.set(true, forKey: "powerLinkedOnce")
+        if UserDefaults.standard.object(forKey: "autoPowerSync") == nil {
+            UserDefaults.standard.set(true, forKey: "autoPowerSync")
+        }
+        powerNeedsLogin = false
+        if automaticPowerProbe && snapshot.isComplete { cancelPowerProbe() }
         persist()
         refreshPowerAlert()
+    }
+
+    /// Loads the official electricity page using the app's EXISTING WebKit cookies.
+    /// It cannot silently complete new school SSO/MFA challenges.
+    func refreshPowerIfNeeded(force: Bool = false) {
+        guard !isDemo, !transitioning, powerAutoSyncEnabled,
+              UserDefaults.standard.bool(forKey: "powerLinkedOnce"), !automaticPowerProbe else { return }
+        if !force {
+            if let lastAutoPowerAttempt, Date.now.timeIntervalSince(lastAutoPowerAttempt) < 4 * 3600 { return }
+            if let power, Date.now.timeIntervalSince(power.updatedAt) < 4 * 3600 { return }
+        }
+        powerNeedsLogin = false
+        lastAutoPowerAttempt = .now
+        automaticPowerRunID += 1
+        let run = automaticPowerRunID
+        automaticPowerProbe = true
+        powerProbeTimeout?.cancel()
+        powerProbeTimeout = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(30))
+            guard !Task.isCancelled, let self, self.automaticPowerRunID == run else { return }
+            self.cancelPowerProbe()
+        }
+    }
+
+    func cancelPowerProbe() {
+        powerProbeTimeout?.cancel()
+        powerProbeTimeout = nil
+        automaticPowerProbe = false
+    }
+
+    func powerAutoLoginRequired() {
+        guard automaticPowerProbe else { return }
+        cancelPowerProbe()
+        powerNeedsLogin = true
+    }
+
+    func powerAutoSettingChanged() {
+        if powerAutoSyncEnabled {
+            refreshPowerIfNeeded(force: true)
+        } else {
+            cancelPowerProbe()
+        }
     }
 
     func enterDemo() {
@@ -184,6 +252,9 @@ final class AppStore {
         syncing = false
         isDemo = true
         hasSession = false
+        cancelPowerProbe()
+        powerNeedsLogin = false
+        powerBalanceHistory = []
         academic = DemoData.academic(campus: campus)
         power = DemoData.power()
         resetCalendarSelection()
@@ -203,6 +274,11 @@ final class AppStore {
         isDemo = false
         academic = nil
         power = nil
+        powerBalanceHistory = []
+        cancelPowerProbe()
+        powerNeedsLogin = false
+        lastAutoPowerAttempt = nil
+        UserDefaults.standard.removeObject(forKey: "powerLinkedOnce")
         lastAutomaticAttempt = nil
         LocalCache.remove()
         saveWallpaper(nil)
@@ -218,7 +294,11 @@ final class AppStore {
         isDemo = false
         academic = nil
         power = nil
-        if let cache = LocalCache.load(), cache.campus == campus { academic = cache.academic; power = cache.power }
+        if let cache = LocalCache.load(), cache.campus == campus {
+            academic = cache.academic
+            power = cache.power
+            powerBalanceHistory = cache.powerHistory ?? []
+        }
         didRestore = false
         resetCalendarSelection()
         await restoreSession()
@@ -272,7 +352,8 @@ final class AppStore {
     }
     private func persist() {
         guard !isDemo else { return }
-        do { try LocalCache.save(CachedAccount(campus: campus, academic: academic, power: power)) }
+        do { try LocalCache.save(CachedAccount(campus: campus, academic: academic,
+                                              power: power, powerHistory: powerBalanceHistory)) }
         catch { message = "数据已读取，但本地缓存写入失败。下次打开可能需要重新同步。" }
     }
 }
@@ -281,6 +362,8 @@ private struct CachedAccount: Codable {
     let campus: Campus
     let academic: AcademicSnapshot?
     let power: PowerSnapshot?
+    // Optional to decode older account-v1.json files without migration.
+    let powerHistory: [PowerBalanceRecord]?
 }
 
 private enum LocalCache {
