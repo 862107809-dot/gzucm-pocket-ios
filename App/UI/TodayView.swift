@@ -67,7 +67,7 @@ struct TodayView: View {
             } else {
                 ForEach(store.todayCourses) { course in
                     Button { selectedCourse = course } label: { CourseRow(course: course) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PocketSpringButtonStyle())
                 }
             }
             if let next = store.nextCourse {
