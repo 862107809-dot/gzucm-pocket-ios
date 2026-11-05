@@ -380,8 +380,13 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
         guard let key = body["roomKey"] as? String, key.count <= 200 else { return }
         if kind == "balance", let number = body["balance"] as? NSNumber,
            CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue.isFinite {
+            // A daily-history batch can finish before the balance request.
+            // Only an actual change to a previously known balance invalidates
+            // its completion marker; preserve an early complete result.
+            if roomKey == key, let previous = currentBalance?.0, previous != number.doubleValue {
+                completedRooms.remove(key)
+            }
             roomKey = key
-            completedRooms.remove(key)
             let unit = String((body["unit"] as? String ?? "度").prefix(12))
             let label = String((body["roomLabel"] as? String ?? "宿舍").prefix(100))
             currentBalance = (number.doubleValue, unit, label.isEmpty ? "宿舍" : label)
