@@ -9,6 +9,20 @@ struct PowerView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                if store.powerNeedsLogin {
+                    PocketCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label("一卡通授权已失效", systemImage: "lock.trianglebadge.exclamationmark")
+                                .font(.headline).foregroundStyle(.orange)
+                            Text("原有登录会话无法继续使用。请在学校网页中重新认证一次，之后可继续自动读取。")
+                                .font(.subheadline).foregroundStyle(.secondary)
+                            Button("重新登录一卡通", action: openPortal).buttonStyle(.borderedProminent)
+                        }
+                    }
+                } else if store.automaticPowerProbe {
+                    Label("正在通过已登录的学校页面检查电量…", systemImage: "arrow.clockwise")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 if let power = store.power {
                     let summary = PowerSummary(power)
                     PocketCard {
@@ -41,7 +55,11 @@ struct PowerView: View {
                             }
                         }.font(.caption).foregroundStyle(.secondary)
                         Spacer()
-                        Button("刷新", systemImage: "arrow.clockwise", action: openPortal).font(.subheadline)
+                        Button("自动刷新", systemImage: "arrow.clockwise") {
+                            if store.powerNeedsLogin { openPortal() }
+                            else { store.refreshPowerIfNeeded(force: true) }
+                        }
+                        .font(.subheadline)
                     }
                     SectionTitle(title: "用电趋势", subtitle: "最近 \(min(30, power.daily.count)) 条记录")
                     PocketCard {
@@ -71,6 +89,26 @@ struct PowerView: View {
                             .accessibilityLabel("每日用电趋势，下方列表提供完整数值")
                         }
                     }
+                    if !store.powerBalanceHistory.isEmpty {
+                        SectionTitle(title: "每日余额自动记录", subtitle: "同一天保留最近一笔，最多 90 天")
+                        PocketCard {
+                            VStack(spacing: 14) {
+                                ForEach(Array(store.powerBalanceHistory.suffix(14).reversed())) { record in
+                                    HStack {
+                                        Text(record.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                                            .font(.subheadline)
+                                        Spacer()
+                                        Text(record.balance.formatted(.number.precision(.fractionLength(2))))
+                                        Text(record.unit).foregroundStyle(.secondary)
+                                    }
+                                    .font(.subheadline).monospacedDigit()
+                                    .accessibilityElement(children: .combine)
+                                }
+                            }
+                        }
+                        Text("余额记录不等于每日用电量：充值会增加余额。记录仅保存在此设备。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                     SectionTitle(title: "每日明细")
                     PocketCard {
                         VStack(spacing: 16) {
@@ -95,7 +133,7 @@ struct PowerView: View {
                         Button("连接一卡通", action: openPortal).buttonStyle(.borderedProminent)
                     }.padding(.top, 40)
                 }
-                Label("电费数据来自学校一卡通。网页可见时读取，不承诺关闭 App 后持续更新。", systemImage: "info.circle")
+                Label("首次在学校网页完成一卡通登录和宿舍绑定后，App 前台会尝试复用 WebKit Cookie，每 4 小时检查一次电量。会话失效时需重新进行学校认证；iOS 关闭或冻结 App 后不保证后台查询。", systemImage: "info.circle")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(20).frame(maxWidth: 850).frame(maxWidth: .infinity)
         }
@@ -125,6 +163,7 @@ struct PowerSummary {
         let mean: Double? = rows.isEmpty ? nil : sum / Double(rows.count)
         average = mean
         let electricity = ["度", "kwh", "千瓦时"].contains(power.unit.lowercased())
-        if electricity, let mean, mean > 0 { days = max(0, power.balance) / mean } else { days = nil }
+        if electricity, recordCount >= 3, now.timeIntervalSince(power.updatedAt) < 48 * 3600,
+           let mean, mean > 0 { days = max(0, power.balance) / mean } else { days = nil }
     }
 }
