@@ -9,6 +9,9 @@ struct ScheduleView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("compactWeekBoard") private var compactWeekBoard = false
     @State private var selectedCourse: CourseSession?
+    @State private var weekEdgeOffset: CGFloat = 0
+    @State private var weekEdge: Int = 0
+    @State private var weekEdgeTask: Task<Void, Never>?
     private let weekdays = ["一", "二", "三", "四", "五", "六", "日"]
 
     var body: some View {
@@ -54,10 +57,12 @@ struct ScheduleView: View {
 
     private func weekControls(_ semester: Semester) -> some View {
         HStack {
-            Button { store.selectedWeek = max(1, store.selectedWeek - 1) } label: {
+            Button { stepWeek(-1, limit: semester.totalWeeks) } label: {
                 Image(systemName: "chevron.left").frame(width: 44, height: 44)
             }
-            .disabled(store.selectedWeek <= 1).accessibilityLabel("上一周")
+            .opacity(store.selectedWeek <= 1 ? 0.55 : 1)
+            .accessibilityLabel("上一周")
+            .accessibilityHint(store.selectedWeek <= 1 ? "已到第一周，轻触可查看边缘提示" : "")
             Spacer(minLength: 4)
             Menu {
                 ForEach(1...max(1, semester.totalWeeks), id: \.self) { week in
@@ -74,15 +79,57 @@ struct ScheduleView: View {
             }
             .accessibilityIdentifier("schedule-week-control")
             Spacer(minLength: 4)
-            Button { store.selectedWeek = min(semester.totalWeeks, store.selectedWeek + 1) } label: {
+            Button { stepWeek(1, limit: semester.totalWeeks) } label: {
                 Image(systemName: "chevron.right").frame(width: 44, height: 44)
             }
-            .disabled(store.selectedWeek >= semester.totalWeeks).accessibilityLabel("下一周")
+            .opacity(store.selectedWeek >= semester.totalWeeks ? 0.55 : 1)
+            .accessibilityLabel("下一周")
+            .accessibilityHint(store.selectedWeek >= semester.totalWeeks ? "已到最后一周，轻触可查看边缘提示" : "")
             if store.currentWeek >= 1 && store.currentWeek <= semester.totalWeeks && store.selectedWeek != store.currentWeek {
                 Button("本周") { store.selectedWeek = store.currentWeek }.font(.caption.bold()).padding(.trailing, 12)
             }
         }
         .pocketGlass()
+        .overlay(alignment: .leading) {
+            Capsule().fill(PocketTheme.jade.opacity(0.5))
+                .frame(width: 8).blur(radius: 7)
+                .opacity(weekEdge == -1 ? 1 : 0)
+                .allowsHitTesting(false)
+        }
+        .overlay(alignment: .trailing) {
+            Capsule().fill(PocketTheme.jade.opacity(0.5))
+                .frame(width: 8).blur(radius: 7)
+                .opacity(weekEdge == 1 ? 1 : 0)
+                .allowsHitTesting(false)
+        }
+        .offset(x: weekEdgeOffset)
+        .sensoryFeedback(.impact(weight: .light, intensity: 0.5), trigger: weekEdge)
+    }
+
+    private func stepWeek(_ direction: Int, limit: Int) {
+        let next = store.selectedWeek + direction
+        guard (1...max(1, limit)).contains(next) else {
+            weekEdgeTask?.cancel()
+            weekEdge = direction
+            if !UIAccessibility.isReduceMotionEnabled {
+                withAnimation(.easeOut(duration: 0.11)) {
+                    weekEdgeOffset = CGFloat(direction) * 7
+                }
+            }
+            weekEdgeTask = Task { @MainActor in
+                do { try await Task.sleep(for: .milliseconds(110)) } catch { return }
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.57)) {
+                    weekEdgeOffset = 0
+                }
+                do { try await Task.sleep(for: .milliseconds(260)) } catch { return }
+                weekEdge = 0
+            }
+            return
+        }
+        weekEdgeTask?.cancel()
+        weekEdge = 0
+        weekEdgeOffset = 0
+        store.selectedWeek = next
     }
 
     private func dayAgenda(semester: Semester) -> some View {
