@@ -59,6 +59,7 @@ struct RootView: View {
                             }
                         }
                         .navigationTitle("校园生活")
+                        .buttonStyle(PocketSpringButtonStyle())
                         .navigationSplitViewColumnWidth(min: 220, ideal: 250, max: 300)
                     } detail: {
                         NavigationStack { navigationPage(store.selectedTab) }
