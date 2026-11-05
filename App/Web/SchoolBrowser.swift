@@ -35,6 +35,28 @@ struct EcardPortalView: View {
     }
 }
 
+/// Reuses the default WKWebsiteDataStore after the user has connected e-card
+/// in a VISIBLE school window. Never displays hidden login or password forms.
+@MainActor
+struct EcardAutoSyncView: View {
+    @StateObject private var browser: SchoolBrowser
+
+    init(onSnapshot: @escaping (PowerSnapshot) -> Void, onNeedsLogin: @escaping () -> Void) {
+        _browser = StateObject(wrappedValue: SchoolBrowser(
+            onSnapshot: onSnapshot, automatic: true, onNeedsLogin: onNeedsLogin
+        ))
+    }
+
+    var body: some View {
+        SchoolWebView(browser: browser)
+            .frame(width: 2, height: 2)
+            .opacity(0.01)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .onDisappear { browser.stop() }
+    }
+}
+
 @MainActor
 private struct BrowserChrome: View {
     @ObservedObject var browser: SchoolBrowser
@@ -98,6 +120,8 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
     private let campus: Campus?
     private let onAuthenticated: (([HTTPCookie]) -> Void)?
     private let onSnapshot: ((PowerSnapshot) -> Void)?
+    private let automatic: Bool
+    private let onNeedsLogin: (() -> Void)?
     private var validatingLogin = false
     private var completedLogin = false
     private var stopped = false
@@ -111,6 +135,8 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
         self.campus = campus
         self.onAuthenticated = onAuthenticated
         self.onSnapshot = nil
+        self.automatic = false
+        self.onNeedsLogin = nil
         super.init()
         configure()
         let entry = campus == .graduate
@@ -119,10 +145,13 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
         webView.load(URLRequest(url: URL(string: entry)!))
     }
 
-    init(onSnapshot: @escaping (PowerSnapshot) -> Void) {
+    init(onSnapshot: @escaping (PowerSnapshot) -> Void,
+         automatic: Bool = false, onNeedsLogin: (() -> Void)? = nil) {
         campus = nil
         onAuthenticated = nil
         self.onSnapshot = onSnapshot
+        self.automatic = automatic
+        self.onNeedsLogin = onNeedsLogin
         super.init()
         configure()
         webView.load(URLRequest(url: URL(string: "https://ecard.gzucm.edu.cn/user/powerfee/index")!))
@@ -232,6 +261,16 @@ private final class SchoolBrowser: NSObject, ObservableObject, WKNavigationDeleg
         isLoading = false
         guard !stopped, let url = webView.url else { return }
         displayHost = url.host ?? "gzucm.edu.cn"
+        if automatic, (url.host == "authserver.gzucm.edu.cn"
+                       || (url.host == "ecard.gzucm.edu.cn"
+                           && (url.path.hasPrefix("/sso/") || url.path.lowercased().contains("login")))) {
+            // A real school login challenge must be completed in the visible sheet.
+            // Do not automate passwords, captchas, or MFA in a hidden browser.
+            status = "学校一卡通登录已失效，需要重新授权。"
+            onNeedsLogin?()
+            stop()
+            return
+        }
         if let campus {
             validateLogin(on: url, campus: campus)
         } else if url.host == "ecard.gzucm.edu.cn" {
