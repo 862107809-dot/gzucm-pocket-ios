@@ -60,6 +60,7 @@ struct SettingsView: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .disabled(store.powerBridgePaired)
                     TextField("网站生成的 12 位一次性配对码", text: $powerPairCode)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
