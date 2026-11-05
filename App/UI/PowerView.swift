@@ -56,7 +56,7 @@ struct PowerView: View {
                         }.font(.caption).foregroundStyle(.secondary)
                         Spacer()
                         Button("自动刷新", systemImage: "arrow.clockwise") {
-                            if store.powerNeedsLogin { openPortal() }
+                            if store.powerNeedsLogin || !store.powerWasLinked { openPortal() }
                             else { store.refreshPowerIfNeeded(force: true) }
                         }
                         .font(.subheadline)
