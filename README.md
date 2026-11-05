@@ -116,3 +116,12 @@ docs/                     系统/设备适配说明与验收清单
 Tests/                    原生 App UI smoke tests，使用虚构演示数据
 VERIFICATION.md           实际检查结果与未执行项目
 ```
+
+
+## 原生界面：网站设计适配
+
+iOS / iPadOS 26 以上的自定义选项使用 Apple `glassEffect`、`GlassEffectContainer` 和 `glassEffectID`。系统 TabView、菜单和导航保留原生行为；iOS18–25 使用 Apple Material 毛玻璃。开启减少透明度时改为实底，减少动态效果时停止放大和弹性动画。正文卡片使用较轻的 Material 保持阅读对比。
+
+课表增加日 / 周 / 月切换和可拖动玻璃选择器。周与月从星期日开始显示，内部官方教学周仍按原数据计算；月历以课程点和 +N 保持紧凑，点击后显示当天全部课程。设置与课程详情使用同一玻璃弹窗，页顶标题居中。
+
+保留当前版本的学校登录、课程/等级/体测/考试、Cookie 连接的一卡通与自动刷新功能。Mac 使用 Mac Catalyst 目标，iPad / 宽窗口使用侧栏，窄窗口使用原生底部导航。GitHub Mac 验证包含 iOS18、iOS26、iPad、Duo 及 Mac Catalyst 编译；实际状态以该次工作流结果为准。

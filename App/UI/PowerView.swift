@@ -9,6 +9,7 @@ struct PowerView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                PocketPageIntro(title: "为宿舍，留一盏灯。", subtitle: "剩余电量、用电趋势与学校一卡通连接。")
                 if store.powerNeedsLogin {
                     PocketCard {
                         VStack(alignment: .leading, spacing: 12) {

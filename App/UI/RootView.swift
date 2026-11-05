@@ -89,16 +89,16 @@ struct RootView: View {
             SettingsView(onLogin: {
                 pendingLogin = true
                 showSettings = false
-            })
+            }).pocketSheet()
         }
         .sheet(isPresented: $showLogin) {
             SchoolLoginView(campus: store.campus, onAuthenticated: { cookies in
                 showLogin = false
                 Task { await store.completeLogin(cookies: cookies) }
-            }, onCancel: { showLogin = false })
+            }, onCancel: { showLogin = false }).pocketSheet()
         }
         .sheet(isPresented: $showPower) {
-            EcardPortalView(onSnapshot: { snapshot in store.acceptPower(snapshot) }, onClose: { showPower = false })
+            EcardPortalView(onSnapshot: { snapshot in store.acceptPower(snapshot) }, onClose: { showPower = false }).pocketSheet()
         }
         .background(alignment: .bottomTrailing) {
             // The official school's authenticated WebKit data store is reused
@@ -142,6 +142,7 @@ struct RootView: View {
     private func navigationPage(_ tab: PocketTab) -> some View {
         page(tab)
             .buttonStyle(PocketSpringButtonStyle())
+            .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .top, spacing: 0) { demoBanner }
             .toolbar { actions }
     }

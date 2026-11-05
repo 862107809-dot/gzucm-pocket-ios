@@ -15,6 +15,7 @@ struct GradesView: View {
             if let academic = store.academic {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 20) {
+                        PocketPageIntro(title: "每一步，都算数。", subtitle: "课程、等级考试与体测，保留学校公布的学习记录。")
                         if !academic.failedSections.filter({ $0 != .sessions }).isEmpty {
                             Label("部分数据同步失败；已有记录已保留，可稍后重新同步。", systemImage: "exclamationmark.circle")
                                 .font(.caption).foregroundStyle(PocketTheme.ochre)
@@ -34,9 +35,7 @@ struct GradesView: View {
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         }
-                        Picker("成绩分类", selection: $store.gradeCategory) {
-                            Text("课程").tag(0); Text("等级").tag(1); Text("体测").tag(2); Text("考试").tag(3)
-                        }.pickerStyle(.segmented)
+                        PocketChoices(title: "成绩分类", items: ["课程", "等级", "体测", "考试"], selection: $store.gradeCategory)
                         if store.gradeCategory == 0 {
                             HStack {
                                 Text("课程成绩").font(.title3.bold())
@@ -115,6 +114,7 @@ struct GradesView: View {
             }
         }
         .pageCanvas().navigationTitle("成绩")
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { Task { await store.sync() } } label: { Image(systemName: "arrow.clockwise") }.disabled(store.syncing || store.isDemo).accessibilityLabel("更新成绩") } }
         .searchable(text: $store.gradeSearch, prompt: "搜索课程名称")
     }
     private func empty(_ title: String) -> some View {

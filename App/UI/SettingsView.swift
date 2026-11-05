@@ -130,6 +130,7 @@ struct SettingsView: View {
                     else { Button("退出演示，恢复本地数据") { Task { await store.leaveDemo(); dismiss() } } }
                 }
             }
+            .scrollContentBackground(.hidden)
             .disabled(store.transitioning)
             .navigationTitle("设置与账户").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }

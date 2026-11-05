@@ -201,9 +201,11 @@ struct CourseDetailView: View {
                 if !course.teachingMode.isEmpty { Section("教学模式") { Text(course.teachingMode) } }
                 if !course.mergedClasses.isEmpty { Section("合班班级") { Text(course.mergedClasses) } }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("课程详情").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
         }
         .presentationDetents([.medium, .large])
+        .pocketSheet()
     }
 }

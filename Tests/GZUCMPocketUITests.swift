@@ -26,6 +26,30 @@ final class GZUCMPocketUITests: XCTestCase {
         await checkDemo(tab: "power", marker: "power-balance", arguments: ["--dark"])
     }
 
+    func testMonthScheduleAndCourseDetails() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--tab", "schedule", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        defer { app.terminate() }
+        let month = app.buttons["月课表"]
+        XCTAssertTrue(month.waitForExistence(timeout: 15))
+        month.tap()
+        let calendar = app.descendants(matching: .any)["schedule-month-calendar"]
+        XCTAssertTrue(calendar.waitForExistence(timeout: 5))
+        let days = app.buttons.matching(NSPredicate(format: "label MATCHES %@", "[0-9]{4}-[0-9]{2}-[0-9]{2}，[0-9]+ 门课程"))
+        XCTAssertGreaterThanOrEqual(days.count, 28)
+        let day = days.allElementsBoundByIndex.first { $0.isHittable }
+        XCTAssertNotNil(day)
+        day?.tap()
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "month-calendar-sunday-first"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        // Return to daily view so persistence doesn't change later tests.
+        app.buttons["日课表"].tap()
+    }
+
     private func checkDemo(tab: String, marker: String, arguments: [String] = [], maximumMarkerHeight: CGFloat? = nil, file: StaticString = #filePath, line: UInt = #line) async {
         continueAfterFailure = false
         let app = XCUIApplication()

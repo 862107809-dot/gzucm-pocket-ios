@@ -3,6 +3,9 @@ name: iPhone device IPA for local signing
 on:
   push:
     paths:
+      - 'App/**'
+      - 'Packages/**'
+      - 'GZUCMPocket.xcodeproj/**'
       - '.github/workflows/ipa.yml'
       - 'tools/package-ios.sh'
       - 'tools/inspect_ipa.py'

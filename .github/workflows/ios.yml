@@ -39,6 +39,10 @@ jobs:
             xcode: '26.3'
             os_major: 26
             device_kind: iphone
+          - runner: macos-15
+            xcode: '26.3'
+            os_major: 26
+            device_kind: ipad
           - runner: xcode-27
             xcode: '27.1'
             os_major: 27
@@ -81,4 +85,25 @@ jobs:
           name: verification-ios${{ matrix.os_major }}-${{ matrix.device_kind }}-xcode${{ matrix.xcode }}
           path: ${{ env.VERIFY_ARTIFACT_DIR }}/
           if-no-files-found: warn
+          retention-days: 14
+
+  mac-catalyst:
+    name: Native Mac Catalyst build
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
+      - name: Build native Mac app with iOS18 deployment fallback
+        run: |
+          set -o pipefail
+          mkdir -p .build/mac-catalyst
+          xcodebuild -project GZUCMPocket.xcodeproj -scheme GZUCMPocket -configuration Debug -destination 'generic/platform=macOS,variant=Mac Catalyst' -derivedDataPath .build/mac-catalyst/DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/mac-catalyst/build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac-catalyst-build-evidence
+          path: .build/mac-catalyst/build.log
           retention-days: 14
