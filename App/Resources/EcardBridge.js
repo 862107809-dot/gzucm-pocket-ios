@@ -12,6 +12,8 @@
   const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
   let apiBalanceSeen = false;
   let lastBalance = '';
+  let lastAutomaticBalanceRequest = 0;
+  let automaticBalanceInFlight = false;
   const syncInFlight = new Set();
   const syncedRooms = new Set();
   const native = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pocketPower;
@@ -246,9 +248,52 @@
       syncInFlight.delete(key);
     }
   }
+  // Prefer the normal page's authenticated requests. When its balance remains
+  // blank after load, issue ONLY the school's read-only getBalance using the
+  // already-rendered, same-origin room and token. No credentials are extracted.
+  async function syncBalanceFromPage() {
+    if (apiBalanceSeen || lastBalance || automaticBalanceInFlight || !originalFetch ||
+        Date.now() - lastAutomaticBalanceRequest < 120000) return;
+    const link = detailLink();
+    const room = pageRoom();
+    if (!link || !room.roomNum ||
+        link.searchParams.get('roomNum') !== room.roomNum ||
+        link.searchParams.get('schoolAreaNo') !== room.schoolAreaNo) return;
+    automaticBalanceInFlight = true;
+    lastAutomaticBalanceRequest = Date.now();
+    try {
+      const form = new URLSearchParams({
+        implType: 'CGCOMMON1001',
+        schoolAreaNo: room.schoolAreaNo,
+        buildingNo: room.buildingNo || link.searchParams.get('buildingNo') || '',
+        roomNum: room.roomNum,
+        token: link.searchParams.get('token') || '',
+        from: ''
+      });
+      const response = await originalFetch('/user/powerfee/getBalance', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: form.toString()
+      });
+      if (response.ok && officialPowerURL(response.url)) {
+        const payload = await response.text();
+        capture(response.url, payload, response.status, room);
+      }
+    } catch (_) {
+      // Leave the existing balance intact. A real auth challenge will be
+      // handled by the visible school page, never by this script.
+    } finally {
+      automaticBalanceInFlight = false;
+    }
+  }
   function refresh() {
     domBalance();
     syncDailyFromPage();
+    syncBalanceFromPage();
   }
   window.__pocketEcard = Object.freeze({ refresh });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh, { once: true });
