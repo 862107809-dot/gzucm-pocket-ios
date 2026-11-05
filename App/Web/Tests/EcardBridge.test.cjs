@@ -256,3 +256,37 @@ test('a changed balance starts another history read before its next completion',
   assert.equal(f.requests.length, 2);
   assert.deepEqual(f.messages.slice(changed).map(m => m.kind), ['balance', 'daily', 'complete', 'status']);
 });
+
+test('previously bound room performs read-only same-origin balance lookup without importing cookies', async () => {
+  const url = detailURL;
+  const calls = [];
+  const f = fixture({ links: [url], fetch: async (raw, init) => {
+    calls.push({ raw, init });
+    if (raw === '/user/powerfee/getBalance') {
+      const form = new URLSearchParams(init.body);
+      assert.equal(init.credentials, 'same-origin');
+      assert.equal(form.get('roomNum'), 'room-fixture');
+      assert.equal(form.get('token'), 'fixture-secret');
+      assert.equal(form.get('from'), '');
+      return response('https://ecard.gzucm.edu.cn/user/powerfee/getBalance', {
+        ret: true, obj: { powerBalance: '19.60', roomNum: 'room-fixture', token: 'server-only' }
+      });
+    }
+    return response('https://ecard.gzucm.edu.cn/user/powerfee/getDailyDetails', {
+      ret: true, obj: { totalPage: 0, dailyDetailsInfos: [{ dateTime: '2026-11-04', dailyUsed: '1.4', leftUsed: '19.6' }] }
+    });
+  } });
+  await settle();
+  await settle();
+  assert.equal(f.messages.some(m => m.kind === 'balance' && m.balance === 19.6), true);
+  assert.equal(calls.filter(x => x.raw.endsWith('/getBalance')).length, 1);
+  assert.equal(JSON.stringify(f.messages).includes('fixture-secret'), false);
+  assert.equal(JSON.stringify(f.messages).includes('server-only'), false);
+});
+
+test('automatic balance reader does not query unbound or mismatched room URLs', async () => {
+  const wrongRoomLink = detailURL.replace('roomNum=room-fixture', 'roomNum=someone-else');
+  const f = fixture({ links: [wrongRoomLink], tips: [] });
+  await settle();
+  assert.equal(f.requests.some(x => x.url.endsWith('/getBalance')), false);
+});
